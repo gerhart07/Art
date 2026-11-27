@@ -394,6 +394,8 @@ function holidayBucket() {
 var BAD_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|maps?|diagram|logo)\b/i;
 var ANIMAL_WORDS = /\b(goats?|sheep|lambs?|deer|elephants?|lions?|tigers?|bears?|wolves|wolf|foxes|fox|zebras?|giraffes?|monkeys?|apes|camels?|donkeys?|pigs?|ducks?|geese|swans?|owls?|eagles?|seals?|whales?|dolphins?|penguins?|livestock|wildlife|fauna|zoo|ziegen|capra|ovis|bos|equus|canis|felis|panthera|cervus|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?)\b/i;
 /* Artful animals: still no people, captivity or hunting. */
+/* Dead game and kitchen still lifes (hanging birds, fish, hares, meat): no place in a bedroom. Japanese prints keep their carp and birds. */
+var GAME_WORDS = /\b(game|gamebag|chickens?|hens?|cocks?|roosters?|capons?|fowls?|poultry|ducks?|geese|goose|pheasants?|partridges?|quails?|grouse|woodcocks?|snipes?|plovers?|larks?|rabbits?|hares?|fish|fishes|herrings?|salmon|trout|carp|cod|eels?|pike|oysters?|lobsters?|crabs?|shrimps?|meats?|hams?|beef|pork|mutton|veal|venison|boar|turkeys?|carcass\w*|butcher\w*|kitchen|larder|pantry|dinner|plucked|kill\w*|trophy|trophies|slain)\b/i;
 var ANIMAL_BAD = /\b(people|portraits?|nude\w*|zoo|captive|hunting|hunted|dead|killed|prey|aircraft|military|weapons?|livestock|cattle|taxiderm\w*|specimens?)\b/i;
 /* Photos only: drop wildlife, plants, people and machines, judged from the file's Commons categories. */
 var BAD_CATS = /\b(goats?|sheep|lambs?|deer|elephants?|lions?|tigers?|bears?|wolves|wolf|foxes|fox|zebras?|giraffes?|monkeys?|apes|camels?|donkeys?|pigs?|ducks?|geese|swans?|owls?|eagles?|seals?|whales?|dolphins?|penguins?|livestock|wildlife|fauna|zoo|ziegen|capra|ovis|bos|equus|canis|felis|panthera|cervus|birds?|animals?|mammals?|insects?|butterfl\w*|moths?|dragonfl\w*|spiders?|arachnids?|reptiles?|amphibians?|fish|fishes|molluscs?|invertebrates?|fungi|mushrooms?|flowers?|plants|orchids?|cattle|cows?|horses?|dogs?|cats|people|sportspeople|portraits?|aircraft|airplanes?|ships|warships|military|weapons?|cars|automobiles|trains|nude\w*)\b/i;
@@ -411,6 +413,8 @@ var MIN_HEIGHT = 1500;
 var KEY = 'art-wall-v2';   // v2: no portraits, landscape-led mix (older likes reset)
 var state = load();
 if (!state.placard) { state.placard = 1; state.labels = 'always'; }
+// A thumbs-down used to lower a whole kind of art a little. It now drops only the one picture, so undo any old lowering.
+for (var bk in state.boost) if (state.boost[bk] < 0) delete state.boost[bk];
 function load() {
   var d = { rotate: 'none', interval: 90, labels: 'always', mat: 0, likes: {}, never: {}, seen: [], boost: {} };
   try { var s = JSON.parse(localStorage.getItem(KEY) || '{}'); for (var k in s) d[k] = s[k]; } catch (e) {}
@@ -528,6 +532,7 @@ function fits(it) {
          !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
          !(it.kind === 'nature' && it.cats && NATURE_BAD.test(it.cats)) &&
          !(it.kind === 'animal' && it.cats && ANIMAL_BAD.test(it.cats)) &&
+         !(it.kind === 'art' && !sacred && it.bucket !== 'print' && it.bucket !== 'jpnt' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
          !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
@@ -634,8 +639,7 @@ function like() {
 }
 function never() {
   var it = current(); if (!it) return;
-  state.never[it.code] = 1;
-  state.boost[it.bucket] = Math.max((state.boost[it.bucket] || 0) - 0.5, -6);
+  state.never[it.code] = 1;   // this one picture only; the kind of art it belongs to keeps its share
   delete state.likes[it.code];
   save();
   hist.splice(pos, 1); pos = hist.length;   // drop it from Back too
