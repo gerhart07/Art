@@ -1,13 +1,21 @@
-# Fireplace clips. One clip per line.
+# Fireplace clips. One clip per line:   file or link | name | tags
 #
 # To add your own clip:
 #   1. Upload the video file into the "fireplace/clips" folder on GitHub.
-#   2. Add a line below with its file name, like:   clips/winter-cabin.mp4 | Winter cabin
-# The words after the | are the name that shows when you switch to it. They are optional.
-# A full web link to a video file works too.
+#   2. Add a line below, like:   clips/rainy-cabin.mp4 | Rainy cabin | rain, night
+# The name and tags are optional. A full web link to a video file works too.
+#
+# Tags pick when a clip plays. The page changes clips every 10 minutes and prefers ones that fit today.
+#   Season:   winter, spring, summer, fall      (the clip only plays in that season)
+#   Holiday:  christmas, newyear, thanksgiving, halloween, valentines, july4   (only plays then, and comes first then)
+#   Weather:  clear, cloudy, fog, rain, snow    (comes first when the weather in Brea matches)
+#   Time:     day, night                        (a small nudge toward the right time of day)
+# A clip with no tags fits any day.
 # Lines that start with # are notes and are skipped.
 
-https://videos.pexels.com/video-files/6305999/6305999-uhd_1440_2732_24fps.mp4 | Christmas stockings
+https://videos.pexels.com/video-files/6305999/6305999-uhd_1440_2732_24fps.mp4 | Christmas stockings | christmas
+https://videos.pexels.com/video-files/18086762/18086762-uhd_1440_2560_24fps.mp4 | Tall fireplace
+https://videos.pexels.com/video-files/32575073/13890296_1440_2560_30fps.mp4 | Fireplace glow
 
 # The fire sound under every clip. Swap the link to change it.
 crackle: https://upload.wikimedia.org/wikipedia/commons/d/d8/Dry_grass_burning_in_open_fireplace.ogg

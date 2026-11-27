@@ -100,9 +100,53 @@ function parseList(txt) {
     var m = /^(crackle|music)\s*:\s*(.+)$/i.exec(line);
     if (m) { if (m[1].toLowerCase() === 'crackle') CRACKLE = m[2].trim(); else MUSIC = m[2].trim(); return; }
     var parts = line.split('|'), src = parts[0].trim();
-    var name = parts[1] ? parts[1].trim() : src.split('/').pop().replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ');
-    CLIPS.push({ src: src, name: name });
+    var name = parts[1] && parts[1].trim() ? parts[1].trim() : src.split('/').pop().replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ');
+    var tags = (parts[2] || '').toLowerCase().split(/[\s,]+/).filter(Boolean);
+    CLIPS.push({ src: src, name: name, tags: tags });
   });
+}
+
+/* ---------- Choosing a clip for today: season, holiday, weather, time of day ----------
+   A clip tagged for another season or holiday waits for its time. Untagged clips fit any day. */
+var SEASONS = ['winter', 'spring', 'summer', 'fall'], HOLIDAYS = ['christmas', 'newyear', 'thanksgiving', 'halloween', 'valentines', 'july4'];
+var WEATHERS = ['clear', 'cloudy', 'fog', 'rain', 'snow'], wx = null;
+function today() {
+  var d = new Date(), m = d.getMonth() + 1, day = d.getDate(), h = d.getHours(), hol = null;
+  var thanks = 22 + (11 - new Date(d.getFullYear(), 10, 1).getDay()) % 7; /* fourth Thursday of November */
+  if ((m === 12 && day >= 31) || (m === 1 && day === 1)) hol = 'newyear';
+  else if ((m === 11 && day > thanks) || m === 12 || (m === 1 && day <= 6)) hol = 'christmas';
+  else if (m === 11 && day >= thanks - 10) hol = 'thanksgiving';
+  else if (m === 10 && day >= 15) hol = 'halloween';
+  else if (m === 2 && day >= 7 && day <= 14) hol = 'valentines';
+  else if ((m === 6 && day >= 28) || (m === 7 && day <= 5)) hol = 'july4';
+  return { season: SEASONS[Math.floor((m % 12) / 3)], holiday: hol, weather: wx, time: h >= 7 && h < 18 ? 'day' : 'night' };
+}
+function fits(c, t) {
+  var has = function (list) { return c.tags.filter(function (x) { return list.indexOf(x) >= 0; }); };
+  var s = has(SEASONS), h = has(HOLIDAYS);
+  if (s.length && s.indexOf(t.season) < 0) return -1;
+  if (h.length && h.indexOf(t.holiday) < 0) return -1;
+  var score = 1 + (h.length ? 4 : 0) + (s.length ? 2 : 0);
+  if (t.weather && c.tags.indexOf(t.weather) >= 0) score += 3;
+  if (c.tags.indexOf(t.time) >= 0) score += 1;
+  return score;
+}
+function pickClip(avoid) {
+  var t = today(), pool = [];
+  CLIPS.forEach(function (c, i) { var sc = fits(c, t); if (sc > 0 && i !== avoid) pool.push({ i: i, w: sc * sc }); });
+  if (!pool.length) CLIPS.forEach(function (c, i) { if (i !== avoid) pool.push({ i: i, w: 1 }); });
+  if (!pool.length) return avoid;
+  var total = pool.reduce(function (a, p) { return a + p.w; }, 0), r = Math.random() * total;
+  for (var k = 0; k < pool.length; k++) { r -= pool[k].w; if (r <= 0) return pool[k].i; }
+  return pool[pool.length - 1].i;
+}
+function updateWeather() {
+  /* City-level only (Brea, California), the same as the art wall. Open-Meteo needs no key. */
+  return fetch('https://api.open-meteo.com/v1/forecast?latitude=33.9&longitude=-117.9&current=weather_code').then(function (r) { return r.json(); })
+    .then(function (j) {
+      var c = j.current && j.current.weather_code;
+      wx = c == null ? null : c <= 1 ? 'clear' : c <= 3 ? 'cloudy' : c <= 48 ? 'fog' : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'snow' : 'rain';
+    }).catch(function () {});
 }
 
 /* ---------- Video: two players, so each clip fades into its own start ---------- */
@@ -144,10 +188,24 @@ vids.forEach(function (v) {
     if (CLIPS.length > 1) setTimeout(function () { changeClip(1); }, 2500);
   });
 });
+var ROTATE_MS = 10 * 60 * 1000, rotTimer = null;
+function rotateSoon(ms) { clearTimeout(rotTimer); rotTimer = setTimeout(function () { if (fading || menuOpen) return rotateSoon(5000); if (CLIPS.length > 1) crossTo(pickClip(state.clip)); rotateSoon(); }, ms || ROTATE_MS); }
+function crossTo(i) {
+  /* Slow crossfade into another clip; then the hidden player loads it too, for its own loop. */
+  state.clip = i; save();
+  var n = other(), v = vids[cur], src = CLIPS[i].src;
+  fading = true; n.loop = false; n.src = src; n.load();
+  n.addEventListener('canplay', function once() {
+    n.removeEventListener('canplay', once);
+    playSafe(n); n.classList.add('show'); v.classList.remove('show'); cur = 1 - cur;
+    setTimeout(function () { v.pause(); v.loop = false; v.src = src; v.load(); fading = false; }, XF * 1000 + 300);
+  });
+}
 function changeClip(d) {
   if (CLIPS.length < 2) { if (CLIPS.length) toast(CLIPS[state.clip].name, 'the only clip so far'); return; }
   fadeEl.classList.remove('clear');
   setTimeout(function () { loadClip(state.clip + d); toast(CLIPS[state.clip].name); }, 800);
+  rotateSoon();
 }
 
 /* ---------- Sound: a real recorded crackle, looped with a soft overlap ---------- */
@@ -336,13 +394,14 @@ document.addEventListener('mousemove', function () {
 
 setRotate();
 dimEl.style.opacity = DIMS[state.dim] ? DIMS[state.dim].a : 0;
+var wxReady = Promise.race([updateWeather(), new Promise(function (ok) { setTimeout(ok, 2500); })]);
+setInterval(updateWeather, 30 * 60 * 1000);
 fetch('clips.txt?t=' + Date.now()).then(function (r) { return r.text(); }).then(function (t) {
   parseList(t);
   if (!CLIPS.length) { fadeEl.classList.add('clear'); toast('No clips listed yet', 'add one to clips.txt'); return; }
-  if (state.clip >= CLIPS.length) state.clip = 0;
-  loadClip(state.clip);
+  return wxReady.then(function () { loadClip(pickClip(-1)); rotateSoon(); });
 }).catch(function () { fadeEl.classList.add('clear'); toast('Could not read clips.txt'); });
-window.__fire = { state: state, clips: function () { return CLIPS; }, crackle: function () { return !!crackleBuf; }, video: function () { return vids[cur]; }, start: start, changeClip: changeClip };
+window.__fire = { today: today, weather: function () { return wx; }, state: state, clips: function () { return CLIPS; }, crackle: function () { return !!crackleBuf; }, video: function () { return vids[cur]; }, start: start, changeClip: changeClip };
 })();
 </script>
 </body>
