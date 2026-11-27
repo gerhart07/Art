@@ -207,7 +207,7 @@ function placardParts(it) {
     if (it.year && it.year.length <= 12) by = by ? by + ', ' + it.year : it.year;
   } else {
     t = t.replace(/[,.]?\s*(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}).*$/, '').replace(/\s*\((?:actm|d\.j\.b\.|[a-z]{1,6}\.?)\)/gi, '')
-         .replace(/\s+(?:jpg|edit|crop\w*|img_?\w*|dsc\w*)\b.*$/i, '').replace(/[\s,.-]+\d{1,3}$/, '').replace(/\s+-\s+[a-z ]+$/, '').trim();
+         .replace(/\s+(?:jpg|edit|crop\w*|img_?\w*|dsc\w*)\b.*$/i, '').replace(/[\s,.-]+\d{1,3}$/, '').replace(/[.\s]+(?:[a-z]\.){1,4}[a-z]?\.?$/i, '').replace(/[.\s]+$/, '').replace(/\s+-\s+[a-z ]+$/, '').trim();
   }
   return { t: t, by: by };
 }
