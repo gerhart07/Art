@@ -56,11 +56,14 @@ body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .captio
 #hint.gone { opacity: 0; pointer-events: none; }
 #status { position: absolute; left: 6%; right: 6%; top: 3%; font-size: clamp(11px, 1.3vmin, 18px); color: var(--ink-faint); text-align: center; }
 #zones { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 30% 40% 30%; grid-template-rows: 18% 64% 18%; z-index: 5; }
-#zones div { display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .4s, background .2s; font-size: clamp(16px, 2.4vmin, 36px); color: var(--ink); text-shadow: 0 1px 10px rgba(0,0,0,.9); }
+#zones button { display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .4s, background .2s; font-size: clamp(16px, 2.4vmin, 36px); color: var(--ink); text-shadow: 0 1px 10px rgba(0,0,0,.9); }
 #zones .top { grid-column: 1 / 4; grid-row: 1; } #zones .bottom { grid-column: 1 / 4; grid-row: 3; }
 #zones .left { grid-column: 1; grid-row: 2; } #zones .mid { grid-column: 2; grid-row: 2; } #zones .right { grid-column: 3; grid-row: 2; }
-body.pointing #zones div { opacity: .9; background: rgba(0,0,0,.18); outline: 1px solid rgba(243,239,232,.12); }
-body.pointing #zones div:hover { background: rgba(0,0,0,.42); }
+body.pointing #zones button { opacity: .9; background: rgba(0,0,0,.18); outline: 1px solid rgba(243,239,232,.12); }
+body.pointing #zones button:hover { background: rgba(0,0,0,.42); }
+#zones button { border: 0; margin: 0; padding: 0; background: transparent; font-family: var(--label); cursor: pointer; -webkit-appearance: none; appearance: none; }
+#zones button:focus { outline: none; }
+body.started #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box-shadow: inset 0 0 0 3px var(--accent); }
 #help { position: absolute; left: 8%; right: 8%; top: 50%; transform: translateY(-50%); background: var(--panel); border-radius: 1.6vmin; padding: 3vmin 4vmin; z-index: 6; opacity: 0; transition: opacity .6s; pointer-events: none; font-size: clamp(14px, 2vmin, 30px); line-height: 1.6; }
 #help.show { opacity: 1; }
 #help b { color: var(--accent); font-weight: 500; }
@@ -80,9 +83,9 @@ body.pointing #zones div:hover { background: rgba(0,0,0,.42); }
       <p>Number keys: <kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels &nbsp; <kbd>9</kbd> help</p>
     </div>
     <div id="zones">
-      <div class="top">♥ More like this</div>
-      <div class="left">◀ Back</div><div class="mid">❚❚ Pause / play</div><div class="right">Next ▶</div>
-      <div class="bottom">✕ Never show again</div>
+      <button class="top" tabindex="0">♥ More like this</button>
+      <button class="left" tabindex="0">◀ Back</button><button class="mid" tabindex="0">❚❚ Pause / play</button><button class="right" tabindex="0">Next ▶</button>
+      <button class="bottom" tabindex="0">✕ Never show again</button>
     </div>
     <div id="help">
       <div>Move the pointer onto the picture and press <b>OK</b>:</div>
@@ -317,8 +320,10 @@ function keepAwake() {
 }
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && started) keepAwake(); });
 function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+var lastFs = 0;
 function fullScreen() {
   if (isFull()) return;
+  lastFs = Date.now();
   var el = document.documentElement;
   try {
     var r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) :
@@ -330,6 +335,8 @@ function fullScreen() {
 function start() {
   if (started) return;
   started = true;
+  document.body.classList.add('started');
+  try { document.querySelector('#zones .mid').focus(); } catch (e) {}
   document.getElementById('hint').classList.add('gone');
   fullScreen(); keepAwake(); forward();
   showHelp(9000);
@@ -346,7 +353,7 @@ window.addEventListener('keydown', function (e) {
   else if (k === 'ArrowDown' || c === 40) { e.preventDefault(); never(); }
   else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); forward(); }
   else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); back(); }
-  else if (k === 'Enter' || c === 13) { e.preventDefault(); fullScreen(); }
+  else if (k === 'Enter' || c === 13) { if (!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#zones'))) { e.preventDefault(); fullScreen(); } }
   else if (k === '5' || k === ' ' || k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause' ||
            c === 10252 || c === 415 || c === 19 || c === 179) {
     e.preventDefault();
@@ -364,8 +371,8 @@ window.addEventListener('keydown', function (e) {
 }, true);
 document.addEventListener('click', function (e) {
   if (!started) { start(); return; }
-  fullScreen();
-  var z = e.target && e.target.closest ? e.target.closest('#zones > div') : null;
+  if (!isFull() && Date.now() - lastFs > 10000) { fullScreen(); flashZones(); return; }   // this OK only brings full screen back
+  var z = e.target && e.target.closest ? e.target.closest('#zones > button') : null;
   if (!z) return;
   flashZones();
   if (z.classList.contains('top')) like();
