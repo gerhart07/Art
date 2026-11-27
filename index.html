@@ -212,12 +212,14 @@ function seasonTerms() {
   if (m <= 7) return ['summer', 'beach', 'sunflowers', 'lavender', 'summer meadow', 'golden field'];
   return ['autumn', 'autumn foliage', 'fall colors', 'harvest', 'vineyard autumn', 'autumn forest'];
 }
+// Brea's real sunrise and sunset, read with the weather. Until then, a late-November guess.
+var sun = { rise: 6.5, set: 16.8 };
+function hourNow() { var d = new Date(); return d.getHours() + d.getMinutes() / 60; }
+// Only two soft windows: the hour or so around sunrise, and the hour or so around sunset. Midday and night have no lean.
+function hourKey() { var h = hourNow(); return h >= sun.rise - .75 && h < sun.rise + 2 ? 'morning' : h >= sun.set - 1.5 && h < sun.set + .75 ? 'evening' : null; }
 function hourTerms() {
-  var h = new Date().getHours();
-  if (h >= 5 && h < 10) return ['sunrise', 'morning mist', 'dawn', 'morning light', 'fog valley'];
-  if (h >= 10 && h < 17) return null;
-  if (h >= 17 && h < 21) return ['sunset', 'golden hour', 'dusk', 'evening light', 'afterglow'];
-  return ['night', 'moon', 'blue hour', 'starry sky', 'city lights night', 'moonlight'];
+  return { morning: ['sunrise', 'morning mist', 'dawn', 'misty lake', 'fog valley', 'calm lake'],
+           evening: ['sunset', 'golden hour', 'dusk', 'evening light', 'afterglow'] }[hourKey()] || null;
 }
 var wx = null;   // 'clear', 'cloudy', 'fog', 'rain' or 'snow'
 function weatherTerms() {
@@ -227,9 +229,12 @@ function weatherTerms() {
 }
 function updateWeather() {
   // City-level only (Brea, California), from Open-Meteo, which needs no key.
-  fetch('https://api.open-meteo.com/v1/forecast?latitude=33.9&longitude=-117.9&current=weather_code').then(function (r) { return r.json(); })
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=33.9&longitude=-117.9&current=weather_code&daily=sunrise,sunset&timezone=auto&forecast_days=1').then(function (r) { return r.json(); })
     .then(function (j) {
       var c = j.current && j.current.weather_code;
+      var hr = function (iso) { var m = /T(\d\d):(\d\d)/.exec(iso || ''); return m ? +m[1] + m[2] / 60 : null; };
+      var r = j.daily && hr(j.daily.sunrise[0]), st = j.daily && hr(j.daily.sunset[0]);
+      if (r != null && st != null) sun = { rise: r, set: st };
       wx = c == null ? null : c <= 1 ? 'clear' : c <= 3 ? 'cloudy' : c <= 48 ? 'fog' : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'snow' : 'rain';
     }).catch(function () {});
 }
@@ -375,7 +380,6 @@ function seasonLine() {
   var m = new Date().getMonth();
   return ['Midwinter', 'Late winter', 'Early spring', 'Spring', 'Late spring', 'Early summer', 'Midsummer', 'Late summer', 'Early autumn', 'Autumn', 'Late autumn', 'Early winter'][m];
 }
-function hourKey() { var h = new Date().getHours(); return h >= 5 && h < 10 ? 'morning' : h >= 17 && h < 21 ? 'evening' : (h >= 21 || h < 5) ? 'night' : null; }
 var HOUR_LINES = { morning: 'Morning light', evening: 'Evening', night: 'Night' };
 var WEATHER_LINES = { clear: 'Clear skies in Brea', cloudy: 'Clouds over Brea', fog: 'Fog in Brea', rain: 'Rain in Brea', snow: 'Snow in Brea' };
 /* A piece only wears an occasion's mat and line when its own title or Commons categories show the subject fits.
