@@ -70,11 +70,9 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
 #zones button { display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .4s, background .2s; font-size: clamp(16px, 2.4vmin, 36px); color: var(--ink); text-shadow: 0 1px 10px rgba(0,0,0,.9); }
 #zones .top { grid-column: 1 / 4; grid-row: 1; } #zones .bottom { grid-column: 1 / 4; grid-row: 3; }
 #zones .left { grid-column: 1; grid-row: 2; } #zones .mid { grid-column: 2; grid-row: 2; } #zones .right { grid-column: 3; grid-row: 2; }
-body.pointing #zones button { opacity: .9; background: rgba(0,0,0,.18); outline: 1px solid rgba(243,239,232,.12); }
-body.pointing #zones button:hover { background: rgba(0,0,0,.42); }
 #zones button { border: 0; margin: 0; padding: 0; background: transparent; font-family: var(--label); cursor: pointer; -webkit-appearance: none; appearance: none; }
-#zones button:focus { outline: none; }
-body.started.pointing #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box-shadow: inset 0 0 0 3px var(--accent); }
+/* The click zones are a silent fallback: nothing about them ever shows over the art. */
+#zones button, #zones button:hover, #zones button:focus, #zones button:active { opacity: 0 !important; outline: none; box-shadow: none; background: transparent; -webkit-tap-highlight-color: transparent; }
 #help { position: absolute; left: 8%; right: 8%; top: 50%; transform: translateY(-50%); background: var(--panel); border-radius: 1.6vmin; padding: 3vmin 4vmin; z-index: 6; opacity: 0; transition: opacity .6s; pointer-events: none; font-size: clamp(14px, 2vmin, 30px); line-height: 1.6; }
 #help.show { opacity: 1; }
 #help b { color: var(--accent); font-weight: 500; }
