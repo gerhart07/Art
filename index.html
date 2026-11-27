@@ -216,9 +216,18 @@ function seasonTerms() {
 var sun = { rise: 6.5, set: 16.8 };
 function hourNow() { var d = new Date(); return d.getHours() + d.getMinutes() / 60; }
 // Only two soft windows: the hour or so around sunrise, and the hour or so around sunset. Midday and night have no lean.
-function hourKey() { var h = hourNow(); return h >= sun.rise - .75 && h < sun.rise + 2 ? 'morning' : h >= sun.set - 1.5 && h < sun.set + .75 ? 'evening' : null; }
+function hourKey() { var h = hourNow(); return Math.abs(h - sun.rise) <= 1 ? 'morning' : Math.abs(h - sun.set) <= 1 ? 'evening' : null; }
+// The one strict rule: a sunrise or sunset only shows within an hour of the real one in Brea.
+var SUNRISE_RE = /\b(sunrises?|dawn|daybreak|first light|sonnenaufgang|lever du soleil|amanecer)\b/i;
+var SUNSET_RE = /\b(sunsets?|dusk|afterglow|golden hour|twilight|sonnenuntergang|coucher du soleil|atardecer)\b/i;
+function sunOK(it) {
+  var text = it.title + ' ' + (it.cats || ''), h = hourNow();
+  if (SUNRISE_RE.test(text) && Math.abs(h - sun.rise) > 1) return false;
+  if (SUNSET_RE.test(text) && Math.abs(h - sun.set) > 1) return false;
+  return true;
+}
 function hourTerms() {
-  return { morning: ['sunrise', 'morning mist', 'dawn', 'misty lake', 'fog valley', 'calm lake'],
+  return { morning: ['sunrise', 'morning mist', 'misty lake', 'fog valley', 'calm lake', 'dawn'],
            evening: ['sunset', 'golden hour', 'dusk', 'evening light', 'afterglow'] }[hourKey()] || null;
 }
 var wx = null;   // 'clear', 'cloudy', 'fog', 'rain' or 'snow'
@@ -618,7 +627,7 @@ function fits(it) {
          !(it.kind === 'nature' && it.cats && NATURE_BAD.test(it.cats)) &&
          !(it.kind === 'animal' && it.cats && ANIMAL_BAD.test(it.cats)) &&
          !(it.kind === 'art' && !sacred && it.bucket !== 'world' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
-         !it.misfit && !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
+         !it.misfit && sunOK(it) && !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
   if (filling || queue.length >= 8) return;
@@ -704,6 +713,7 @@ function toneOK(img, blueOK, darkOK) {
 function forward() {
   if (pos < hist.length - 1) { pos++; render(hist[pos]); return; }
   var it = queue.shift();
+  while (it && !sunOK(it)) it = queue.shift();   // a sunset that waited in line past its hour is skipped
   fill();
   if (!it) { status('Finding art…'); setTimeout(forward, 1500); return; }
   status('');
