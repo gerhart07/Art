@@ -110,6 +110,10 @@ body.started #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box
    and drops anything whose title matches the "not for a bedroom wall" list. */
 var WM = 'https://commons.wikimedia.org/w/api.php';
 var CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
+var CITIES = ['Paris', 'Montmartre', 'Seine', 'Prague', 'Budapest', 'Oslo', 'Bergen', 'Ålesund', 'Lofoten', 'Geiranger', 'Vienna', 'Salzburg',
+  'Florence', 'Venice', 'Rome', 'Lisbon', 'Porto', 'Seville', 'Edinburgh', 'Copenhagen', 'Amsterdam', 'Bruges', 'Kraków', 'Ljubljana', 'Tallinn'];
+var PAINTED_CITIES = ['Paris', 'Seine', 'Venice', 'Canaletto', 'Guardi', 'Caillebotte', 'Pissarro', 'boulevard', 'Hammershøi', 'Amsterdam',
+  'Rome', 'Florence', 'Prague', 'Vienna', 'canal', 'bridge', 'street', 'rooftops'];
 var BUCKETS = [
   { id: 'land',  name: 'Landscape photos',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 4 },
   { id: 'lpnt',  name: 'Landscape paintings', kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" (landscape OR valley OR river OR mountain OR forest OR coast OR sea OR lake OR garden OR field OR harbor OR sunset) fileh:>2000 -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen', w: 5 },
@@ -117,6 +121,9 @@ var BUCKETS = [
   { id: 'cland', name: 'Landscape paintings', kind: 'art',   src: 'cma', q: 'type=Painting&q=landscape', w: 3 },
   { id: 'abst',  name: 'Abstract',            kind: 'art',   src: 'wm',  q: 'deepcat:"Abstract paintings" fileh:>1600', w: 2.5 },
   { id: 'print', name: 'Japanese prints',     kind: 'art',   src: 'cma', q: 'type=Print&department=Japanese%20Art&q=landscape', w: 1.5 },
+  { id: 'city',  name: 'European cities',     kind: 'photo', src: 'wm',  q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: CITIES, w: 3 },
+  { id: 'cityq', name: 'European cities',     kind: 'photo', src: 'wm',  q: 'incategory:Quality_images {t} fileh:>2400 filew:<3000', terms: CITIES, w: 3 },
+  { id: 'cpnt',  name: 'Painted city views',  kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" {t} -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen', terms: PAINTED_CITIES, w: 3 },
   { id: 'arch',  name: 'Architecture',        kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 1 }
 ];
 var SKIP_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
@@ -165,7 +172,8 @@ function stripTags(s) { var d = document.createElement('div'); d.innerHTML = s |
 function cleanTitle(t) { t = t.split(/\s*(?:title|label) QS:/)[0]; if (t.length > 110) t = t.slice(0, 108).replace(/[\s,;:]+\S*$/, '') + '…'; return t.replace(/^File:/, '').replace(/\.(jpe?g|png|tiff?)$/i, '').replace(/_/g, ' ').replace(/\s*-\s*Google Art Project.*$/i, '').replace(/\s*\(\d+\)$/, '').trim(); }
 
 function fetchWM(b) {
-  var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: b.q, gsrlimit: 30, gsrsort: 'random',
+  var q = b.terms ? b.q.replace('{t}', b.terms[Math.floor(Math.random() * b.terms.length)]) : b.q;
+  var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: q, gsrlimit: 30, gsrsort: 'random',
             prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiextmetadatafilter: 'Artist|LicenseShortName|ObjectName|Categories',
             iiurlheight: 2560, format: 'json', formatversion: 2, origin: '*' };
   var qs = Object.keys(p).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
