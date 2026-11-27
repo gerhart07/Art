@@ -21,6 +21,7 @@
   --mat-color: #cbbfac;
   --bevel: #ece6da;
   --mat: 38px;
+  --label-ink: rgba(58,50,42,.62);
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -48,13 +49,13 @@ body.idle, body.idle * { cursor: none !important; }
 .slide.on { opacity: 1; }
 .slide.photo .window img { animation: drift 120s ease-in-out infinite alternate; }
 @keyframes drift { from { transform: scale(1); } to { transform: scale(1.05); } }
-.caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 14% 6% 5%; z-index: 1; opacity: 0; transition: opacity 1.2s ease;
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,.55)); text-shadow: 0 1px 10px rgba(0,0,0,.8); }
-body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .caption { opacity: 1; }
-.caption .t { font-family: var(--serif); font-style: italic; font-size: clamp(16px, 2.2vmin, 34px); line-height: 1.2; }
-.caption .c { margin-top: .5vmin; font-size: clamp(12px, 1.45vmin, 22px); letter-spacing: .02em; color: var(--ink-soft); }
-.caption .code { color: var(--accent); margin-left: .6em; letter-spacing: .08em; }
-
+.placard { position: absolute; left: var(--mat); right: var(--mat); bottom: 0; height: var(--mat); display: flex; align-items: center; justify-content: center;
+  gap: .9em; white-space: nowrap; overflow: hidden; font-size: max(10px, calc(var(--mat) * .36)); letter-spacing: .03em; color: var(--label-ink);
+  opacity: 0; transition: opacity 1.2s ease; }
+body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placard { opacity: 1; }
+.placard .t { font-family: var(--serif); font-style: italic; font-size: 1.12em; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+.placard .by { overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+.placard .code { opacity: .55; letter-spacing: .1em; flex-shrink: 0; }
 #toast { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%) scale(.96); padding: 2vmin 3.4vmin; border-radius: 1.4vmin; background: var(--panel); font-size: clamp(16px, 2.6vmin, 40px); opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; text-align: center; white-space: nowrap; }
 #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 #toast small { display: block; margin-top: .6vmin; font-size: .55em; color: var(--ink-soft); }
@@ -158,8 +159,9 @@ var MIN_HEIGHT = 1500;
 /* ---------- Saved state on this TV ---------- */
 var KEY = 'art-wall-v2';   // v2: no portraits, landscape-led mix (older likes reset)
 var state = load();
+if (!state.placard) { state.placard = 1; state.labels = 'always'; }
 function load() {
-  var d = { rotate: 'none', interval: 90, labels: 'brief', mat: 0, likes: {}, never: {}, seen: [], boost: {} };
+  var d = { rotate: 'none', interval: 90, labels: 'always', mat: 0, likes: {}, never: {}, seen: [], boost: {} };
   try { var s = JSON.parse(localStorage.getItem(KEY) || '{}'); for (var k in s) d[k] = s[k]; } catch (e) {}
   return d;
 }
@@ -191,6 +193,24 @@ function pickBucket() {
 function stripTags(s) { var d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
 function cleanTitle(t) { t = t.split(/\s*(?:title|label) QS:/)[0]; if (t.length > 110) t = t.slice(0, 108).replace(/[\s,;:]+\S*$/, '') + '…'; return t.replace(/^File:/, '').replace(/\.(jpe?g|png|tiff?)$/i, '').replace(/_/g, ' ').replace(/\s*-\s*Google Art Project.*$/i, '').replace(/\s*\(\d+\)$/, '').trim(); }
 
+function shortName(n) {
+  n = (n || '').split(/\n|;|\s{2,}|\s*\(|\s+Link back/)[0].replace(/^(unknown|anonymous)\b.*$/i, '').trim();
+  return n.length > 40 ? '' : n;
+}
+/* Words for the placard: paintings get title, artist and year; photos get the place or subject and the photographer. */
+function placardParts(it) {
+  var t = it.title || '', by = it.by || '';
+  if (it.kind === 'art') {
+    var m = t.match(/^(.{3,40}?)\s+-\s+(.+)$/);
+    if (m && (!by || by.toLowerCase().indexOf(m[1].toLowerCase().split(' ').pop()) >= 0 || m[1].toLowerCase().indexOf(by.toLowerCase().split(' ').pop()) >= 0)) { by = by || m[1]; t = m[2]; }
+    t = t.replace(/\s+-\s+\d{4}.*$/, '');
+    if (it.year && it.year.length <= 12) by = by ? by + ', ' + it.year : it.year;
+  } else {
+    t = t.replace(/[,.]?\s*(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}).*$/, '').replace(/\s*\((?:actm|d\.j\.b\.|[a-z]{1,6}\.?)\)/gi, '')
+         .replace(/\s+(?:jpg|edit|crop\w*|img_?\w*|dsc\w*)\b.*$/i, '').replace(/[\s,.-]+\d{1,3}$/, '').replace(/\s+-\s+[a-z ]+$/, '').trim();
+  }
+  return { t: t, by: by };
+}
 function fetchWM(b) {
   var q = b.terms ? b.q.replace('{t}', b.terms[Math.floor(Math.random() * b.terms.length)]) : b.q;
   var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: q, gsrlimit: 30, gsrsort: 'random',
@@ -206,6 +226,7 @@ function fetchWM(b) {
       return { code: 'W' + pg.pageid.toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
                w: ii.width, h: ii.height, url: ii.thumburl || ii.url, title: title,
                cats: (m.Categories && m.Categories.value) || '',
+               by: shortName(stripTags(m.Artist && m.Artist.value)),
                credit: [stripTags(m.Artist && m.Artist.value), stripTags(m.LicenseShortName && m.LicenseShortName.value), 'Wikimedia Commons'].filter(Boolean).join(' · ') };
     }).filter(Boolean);
   });
@@ -226,6 +247,7 @@ function fetchCMA(b) {
       who = who.replace(/\s*\(.*\)\s*$/, '');
       return { code: 'C' + Number(a.id).toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
                w: +im.width, h: +im.height, url: im.url, title: a.title || 'Untitled',
+               by: shortName(who), year: a.creation_date || '',
                credit: [who, a.creation_date, 'Cleveland Museum of Art'].filter(Boolean).join(' · ') };
     }).filter(Boolean);
   });
@@ -273,11 +295,11 @@ function render(it) {
     next.innerHTML = '';
     next.className = 'slide ' + (it.kind === 'art' ? 'art' : 'photo');
     var win = document.createElement('div'); win.className = 'window'; img.className = ''; win.appendChild(img); next.appendChild(win);
-    var cap = document.createElement('div'); cap.className = 'caption';
-    var t = document.createElement('div'); t.className = 't'; t.textContent = it.title;
-    var c = document.createElement('div'); c.className = 'c'; c.textContent = it.credit;
-    var code = document.createElement('span'); code.className = 'code'; code.textContent = it.code;
-    c.appendChild(code); cap.appendChild(t); cap.appendChild(c); win.appendChild(cap);
+    var pp = placardParts(it), cap = document.createElement('div'); cap.className = 'placard';
+    var t = document.createElement('span'); t.className = 't'; t.textContent = pp.t; cap.appendChild(t);
+    if (pp.by) { var by = document.createElement('span'); by.className = 'by'; by.textContent = pp.by; cap.appendChild(by); }
+    var code = document.createElement('span'); code.className = 'code'; code.textContent = it.code; cap.appendChild(code);
+    next.appendChild(cap);
     next.offsetWidth;
     next.classList.add('on', 'fresh');
     slides[cur].classList.remove('on');
@@ -343,15 +365,16 @@ function bucketName(id) { for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i
 /* ---------- Screen ---------- */
 var stage = document.getElementById('stage');
 var MATS = [
-  { name: 'Oatmeal',       c: '#cbbfac', b: '#ece6da' },
-  { name: 'Warm greige',   c: '#a89c8b', b: '#d8cfc1' },
-  { name: 'Linen',         c: '#ddd5c6', b: '#f4efe6' },
-  { name: 'Warm charcoal', c: '#3a3531', b: '#6b625a' }
+  { name: 'Oatmeal',       c: '#cbbfac', b: '#ece6da', i: 'rgba(58,50,42,.62)' },
+  { name: 'Warm greige',   c: '#a89c8b', b: '#d8cfc1', i: 'rgba(38,32,26,.66)' },
+  { name: 'Linen',         c: '#ddd5c6', b: '#f4efe6', i: 'rgba(58,50,42,.58)' },
+  { name: 'Warm charcoal', c: '#3a3531', b: '#6b625a', i: 'rgba(236,228,216,.5)' }
 ];
 function layout() {
   var m = MATS[state.mat] || MATS[0], fr = document.getElementById('frame');
   document.documentElement.style.setProperty('--mat-color', m.c);
   document.documentElement.style.setProperty('--bevel', m.b);
+  document.documentElement.style.setProperty('--label-ink', m.i);
   stage.classList.remove('turn-left', 'turn-right', 'wide');
   if (state.rotate === 'left') stage.classList.add('turn-left');
   if (state.rotate === 'right') stage.classList.add('turn-right');
