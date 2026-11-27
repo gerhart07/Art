@@ -20,7 +20,7 @@ https://videos.pexels.com/video-files/18086762/18086762-uhd_1440_2560_24fps.mp4 
 https://videos.pexels.com/video-files/32575073/13890296_1440_2560_30fps.mp4 | Fireplace glow
 
 # The fire sound under every clip. Swap the file or link to change it.
-# This one is the wood stove sound from the cat clip, stretched into a 36 second bed.
+# This one is the wood stove sound from the first cat clip, stretched into a 36 second bed.
 crackle: clips/stove-crackle.mp3
 
 # Optional background music. Remove the # and put a link to a music file.
