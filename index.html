@@ -153,11 +153,6 @@ var STILL = ['still life', 'flowers in a vase', 'bouquet', 'fruit', 'interior', 
 var ANIMALS = ['underwater', 'coral reef', 'jellyfish', 'lionfish', 'koi', 'flamingo', 'swan', 'butterfly', 'hummingbird', 'seahorse', 'sea turtle', 'fox snow'];
 var NOPEOPLE = ' -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen';
 var FP = 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000';
-var QI = 'incategory:Quality_images {t} fileh:>2400 filew:<3000';
-var WORLD = ['Persian miniature garden', 'Mughal garden painting', 'Madhubani painting', 'Pichwai painting', 'Balinese painting',
-  'Kamasan painting', 'batik tulis', 'kente cloth', 'bogolan mudcloth', 'Tingatinga painting', 'Ethiopian painting', 'Huichol yarn painting',
-  'Otomi embroidery', 'Navajo rug', 'Shipibo textile', 'mola textile', 'Andean textile', 'Mexican folk art', 'minhwa', 'Chinese landscape painting',
-  'Korean landscape painting', 'Vietnamese lacquer painting', 'Persian carpet', 'Islamic tile panel'];
 var GAP = 'incategory:"Google_Art_Project_paintings" {t}';
 
 /* Base mix (weights add to 100). Your ratings nudge each strand up or down from here. */
@@ -171,41 +166,41 @@ var BUCKETS = [
   { id: 'impr',  cat: 'Landscapes', name: 'Impressionist landscapes', kind: 'art', src: 'wm', q: 'incategory:"Google_Art_Project_paintings" (Monet OR Renoir OR Pissarro OR Sisley OR Cézanne OR Gogh OR Morisot OR Seurat OR Caillebotte) (landscape OR garden OR river OR field OR sea OR snow OR bridge OR pond OR village OR road OR trees)' + NOPEOPLE, w: 3 },
   { id: 'cland', cat: 'Landscapes', name: 'Landscape paintings', kind: 'art',   src: 'cma', q: 'type=Painting&q=landscape', w: 2 },
   // European cities 11
-  { id: 'city',  cat: 'Cities', name: 'European cities',     kind: 'photo', src: 'wm',  q: FP, terms: CITIES, w: 4 },
-  { id: 'cityq', cat: 'Cities', name: 'European cities',     kind: 'photo', src: 'wm',  q: QI, terms: CITIES, w: 4 },
+  { id: 'city',  cat: 'Cities', name: 'European cities',     kind: 'photo', src: 'wm',  q: FP, terms: CITIES, w: 8 },
   { id: 'cpnt',  cat: 'Cities', name: 'Painted city views',  kind: 'art',   src: 'wm',  q: GAP + NOPEOPLE, terms: PAINTED_CITIES, w: 3 },
   // Architecture 9
   { id: 'arch',  cat: 'Architecture', name: 'Architecture',  kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 4 },
-  { id: 'archq', cat: 'Architecture', name: 'Architecture',  kind: 'photo', src: 'wm',  q: QI, terms: ARCH, w: 5 },
+  { id: 'archq', cat: 'Architecture', name: 'Architecture',  kind: 'photo', src: 'wm',  q: FP, terms: ARCH, w: 5 },
   // Abstract photography 9
   { id: 'absp',  cat: 'Abstract photography', name: 'Abstract photography', kind: 'nature', src: 'wm', q: FP, terms: ABSTRACT_PHOTO, blueOK: true, w: 9 },
   // Abstract painting 9
-  { id: 'abst',  cat: 'Abstract painting', name: 'Abstract painting', kind: 'art', src: 'wm', q: 'deepcat:"Abstract paintings" fileh:>1600', w: 9 },
+  { id: 'abst',  cat: 'Abstract painting', name: 'Abstract painting', kind: 'art', src: 'wm', q: 'incategory:"Google_Art_Project_paintings" (Kandinsky OR Klee OR Mondrian OR Delaunay OR Kupka OR Malevich OR Macke OR Feininger OR Jawlensky OR Popova OR Goncharova OR "Franz Marc" OR "Arthur Dove" OR "Marsden Hartley")', w: 9 },
   // Classic paintings 9
   { id: 'still', cat: 'Classic paintings', name: 'Classic paintings', kind: 'art', src: 'wm', q: GAP + NOPEOPLE, terms: STILL, w: 6 },
   { id: 'cstill', cat: 'Classic paintings', name: 'Classic paintings', kind: 'art', src: 'cma', q: 'type=Painting&q=still%20life', w: 3 },
   // Flowers 7
   { id: 'flora', cat: 'Flowers', name: 'Flowers', kind: 'nature', src: 'wm', q: 'deepcat:"Featured pictures of plants" fileh:>2400 filew:<3000', w: 3 },
-  { id: 'bloom', cat: 'Flowers', name: 'Flowers', kind: 'nature', src: 'wm', q: QI, terms: FLOWERS, w: 4 },
+  { id: 'bloom', cat: 'Flowers', name: 'Flowers', kind: 'nature', src: 'wm', q: FP, terms: FLOWERS, w: 4 },
   // Macro 7
-  { id: 'macro', cat: 'Macro', name: 'Macro', kind: 'nature', src: 'wm', q: QI, terms: MACRO, blueOK: true, w: 7 },
+  { id: 'macro', cat: 'Macro', name: 'Macro', kind: 'nature', src: 'wm', q: FP, terms: MACRO, blueOK: true, w: 7 },
   // Art from around the world 7: each fetch picks one tradition, so no single culture leads
-  { id: 'world', cat: 'Art from around the world', name: 'Art from around the world', kind: 'art', src: 'cma', w: 4,
+  { id: 'world', cat: 'Art from around the world', name: 'Art from around the world', kind: 'art', src: 'cma', w: 7,
     variants: [ { q: 'type=Painting&department=Japanese%20Art', w: .5, plain: 'Japanese painting' },
                 { q: 'type=Print&department=Japanese%20Art&q=landscape', w: .5, plain: 'Japanese print' },
                 { q: 'type=Painting&department=Chinese%20Art', w: 1, plain: 'Chinese painting' },
                 { q: 'type=Painting&department=Korean%20Art', w: 1, plain: 'Korean painting' },
-                { q: 'type=Painting&department=Indian%20and%20Southeast%20Asian%20Art', w: 1, plain: 'Painting from India' } ] },
-  { id: 'worldw', cat: 'Art from around the world', name: 'Art from around the world', kind: 'art', src: 'wm', w: 3,
-    q: '"{t}" fileh:>1500 filetype:bitmap' + NOPEOPLE, terms: WORLD },
+                { q: 'type=Painting&department=Indian%20and%20Southeast%20Asian%20Art', w: 1, plain: 'Painting from India' },
+                { q: 'department=Islamic%20Art&q=landscape', w: .7, plain: 'Persian painting' },
+                { q: 'department=Textiles&q=batik', w: .5, plain: 'Javanese batik' },
+                { q: 'type=Textile&department=African%20Art', w: .3, plain: 'West African cloth' } ] },
   // Artful animals 5
   { id: 'anim',  cat: 'Animals', name: 'Artful animals', kind: 'animal', src: 'wm', q: FP, terms: ANIMALS, blueOK: true, w: 5 },
 
   // Moments: these only join the mix when the season, time of day, weather or a holiday calls for them.
-  { id: 'season',  cat: 'Season', name: 'The season', kind: 'photo', src: 'wm', q: FP, dyn: function () { return seasonTerms(); }, whyFn: whySeason, w: 6 },
-  { id: 'seasonA', cat: 'Season', name: 'The season', kind: 'art',   src: 'wm', q: GAP + NOPEOPLE, dyn: function () { return seasonTerms(); }, whyFn: whySeason, w: 4 },
-  { id: 'hour',    cat: 'Time of day', name: 'Time of day', kind: 'photo', src: 'wm', q: FP, dyn: function () { return hourTerms(); }, whyFn: whyHour, darkOK: true, blueOK: true, w: 7 },
-  { id: 'weather', cat: 'Weather', name: 'Today’s weather', kind: 'photo', src: 'wm', q: FP, dyn: function () { return weatherTerms(); }, whyFn: whyWeather, blueOK: true, darkOK: true, w: 7 },
+  { id: 'season',  cat: 'Season', name: 'The season', kind: 'photo', src: 'wm', q: FP, dyn: function () { return seasonTerms(); }, whyFn: whySeason, w: 8 },
+  { id: 'seasonA', cat: 'Season', name: 'The season', kind: 'art',   src: 'wm', q: GAP + NOPEOPLE, dyn: function () { return seasonTerms(); }, whyFn: whySeason, w: 6 },
+  { id: 'hour',    cat: 'Time of day', name: 'Time of day', kind: 'photo', src: 'wm', q: FP, dyn: function () { return hourTerms(); }, whyFn: whyHour, darkOK: true, blueOK: true, w: 14 },
+  { id: 'weather', cat: 'Weather', name: 'Today’s weather', kind: 'photo', src: 'wm', q: FP, dyn: function () { return weatherTerms(); }, whyFn: whyWeather, blueOK: true, darkOK: true, w: 15 },
   { id: 'hol', cat: 'Calendar', name: 'The calendar', src: 'hol', kind: 'art', darkOK: true, blueOK: true, w: 0 }
 ];
 
@@ -323,7 +318,7 @@ function observances(now) {
   if (wx === 'snow') list.push({ name: 'Snow day', share: .3, photo: ['snowfall', 'snowy forest', 'winter cabin', 'snowy village'] });
   return list;
 }
-function holidayShare() { var keep = 1; observances().forEach(function (o) { keep *= 1 - o.share; }); return Math.min(1 - keep, .65); }
+function holidayShare() { var keep = 1; observances().forEach(function (o) { keep *= 1 - o.share / 2; }); return Math.min(1 - keep, .3); }
 function pickObservance() {
   var list = observances(), total = 0; list.forEach(function (o) { total += o.share; });
   var r = Math.random() * total;
@@ -454,9 +449,9 @@ function holidayBucket() {
   var fit = way === 'artists' ? artistFit(o.artists) : OCCASION_FIT[o.name] || null;
   var b = { id: 'hol', name: o.name, src: 'wm', darkOK: true, blueOK: true, allowPeople: o.allowPeople, memorial: o.memorial, obs: o.name, mustFit: true,
             why: { line: occasionLine(o), mat: OCCASION_MATS[o.name] || null, fit: fit } };
-  if (way === 'photo') { b.kind = 'nature'; b.q = Math.random() < .5 ? FP : QI.replace('fileh:>2400', 'fileh:>2000'); b.terms = o.photo; }
+  if (way === 'photo') { b.kind = 'nature'; b.q = FP; b.terms = o.photo; }
   else if (way === 'art') { b.kind = 'art'; b.q = GAP; b.terms = o.art; }
-  else { b.kind = 'art'; b.q = '{t} fileh:>1500 filetype:bitmap -portrait -"self-portrait"'; b.terms = o.artists; }
+  else { b.kind = 'art'; b.q = GAP + ' -portrait -"self-portrait"'; b.terms = o.artists; }
   return b;
 }
 
@@ -561,7 +556,7 @@ function withFlags(b, it) {
 function fetchWM(b) {
   var terms = b.dyn ? b.dyn() : b.terms;
   var term = terms ? terms[Math.floor(Math.random() * terms.length)] : '', q = terms ? b.q.replace('{t}', term) : b.q;
-  var plain = b.id === 'worldw' && term ? term.charAt(0).toUpperCase() + term.slice(1) : '';
+  var plain = '';
   var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: q, gsrlimit: 30, gsrsort: 'random',
             prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiextmetadatafilter: 'Artist|LicenseShortName|ObjectName|Categories',
             iiurlheight: 2560, format: 'json', formatversion: 2, origin: '*' };
@@ -618,7 +613,7 @@ function fits(it) {
          !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
          !(it.kind === 'nature' && it.cats && NATURE_BAD.test(it.cats)) &&
          !(it.kind === 'animal' && it.cats && ANIMAL_BAD.test(it.cats)) &&
-         !(it.kind === 'art' && !sacred && it.bucket !== 'world' && it.bucket !== 'worldw' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
+         !(it.kind === 'art' && !sacred && it.bucket !== 'world' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
          !it.misfit && !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
