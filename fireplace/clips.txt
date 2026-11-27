@@ -1,0 +1,16 @@
+# Fireplace clips. One clip per line.
+#
+# To add your own clip:
+#   1. Upload the video file into the "fireplace/clips" folder on GitHub.
+#   2. Add a line below with its file name, like:   clips/winter-cabin.mp4 | Winter cabin
+# The words after the | are the name that shows when you switch to it. They are optional.
+# A full web link to a video file works too.
+# Lines that start with # are notes and are skipped.
+
+https://videos.pexels.com/video-files/6305999/6305999-uhd_1440_2732_24fps.mp4 | Christmas stockings
+
+# The fire sound under every clip. Swap the link to change it.
+crackle: https://upload.wikimedia.org/wikipedia/commons/d/d8/Dry_grass_burning_in_open_fireplace.ogg
+
+# Optional background music. Remove the # and put a link to a music file.
+# music: clips/my-song.mp3

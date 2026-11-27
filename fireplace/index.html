@@ -7,9 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap">
 <style>
-/* A tall fireplace for a TV in portrait. Everything works from the remote: arrows, OK and number keys. */
+/* A tall fireplace for a TV in portrait. It plays the clips listed in clips.txt.
+   Remote: ◀ ▶ change the clip, OK starts the sound, hold OK for settings. */
 :root {
-  --wall: #0a0706;
+  --wall: #000;
   --ink: #f3efe8;
   --ink-soft: rgba(243,239,232,.74);
   --ink-faint: rgba(243,239,232,.45);
@@ -26,41 +27,31 @@ body { margin: 0; background: var(--wall); color: var(--ink); font-family: var(-
 #space { width: 300vw; height: 300vh; }
 body.idle, body.idle * { cursor: none !important; }
 
-#stage { position: fixed; left: 50%; top: 50%; width: 100vw; height: 100vh; transform: translate(-50%,-50%); overflow: hidden; background: var(--wall); }
-#stage.turn-left  { transform: translate(-50%,-50%) rotate(-90deg); }
-#stage.turn-right { transform: translate(-50%,-50%) rotate(90deg); }
-#frame { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); overflow: hidden; background: #000; }
-#frame canvas { position: absolute; display: block; }
-#back, #front, #glow, #fx { left: 0; top: 0; width: 100%; height: 100%; }
-#glow { opacity: .85; }
-#cat { transform-origin: 50% 85%; animation: breathe 4.6s ease-in-out infinite; }
-@keyframes breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.008, 1.025); } }
-#light, #dim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
-#light { opacity: .8; }
-#dim { background: #000; opacity: 0; transition: opacity 1.2s ease; }
-#fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: #000; opacity: 1; transition: opacity .9s ease; pointer-events: none; }
+#stage { position: fixed; left: 50%; top: 50%; width: 100vw; height: 100vh; transform: translate(-50%,-50%); overflow: hidden; background: #000; }
+#stage.turn-left  { width: 100vh; height: 100vw; transform: translate(-50%,-50%) rotate(-90deg); }
+#stage.turn-right { width: 100vh; height: 100vw; transform: translate(-50%,-50%) rotate(90deg); }
+#stage video.clip { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.6s linear; background: #000; }
+#stage video.clip.show { opacity: 1; }
+#dim, #fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; background: #000; }
+#dim { opacity: 0; transition: opacity 1.2s ease; }
+#fade { opacity: 1; transition: opacity .8s ease; }
 #fade.clear { opacity: 0; }
 
 #focus { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; outline: none; -webkit-tap-highlight-color: transparent; }
 #focus:focus { outline: none; box-shadow: none; }
 
-/* Feedback word: quiet, along the top edge. */
 #toast { position: absolute; left: 6%; right: 6%; top: 2.2%; display: flex; align-items: center; justify-content: center; gap: .8em; z-index: 7;
   font-size: clamp(14px, 2.6vmin, 34px); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(243,226,200,.82);
   text-shadow: 0 1px 6px rgba(0,0,0,.8); opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
 #toast.show { opacity: 1; }
 #toast small { font-size: .82em; opacity: .75; text-transform: none; letter-spacing: .02em; font-weight: 500; }
 
-#hint, #help { position: absolute; left: 8%; right: 8%; top: 9%; background: var(--panel); border-radius: 1.6vmin; padding: 3.4vmin 3.6vmin; text-align: center; z-index: 6; }
-#hint { transition: opacity 1s; }
+#hint { position: absolute; left: 8%; right: 8%; top: 9%; background: var(--panel); border-radius: 1.6vmin; padding: 3.4vmin 3.6vmin; text-align: center; z-index: 6; transition: opacity 1s; }
 #hint.gone { opacity: 0; pointer-events: none; }
 #hint h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 5.4vmin, 76px); margin: 0 0 2vmin; }
 #hint p { font-size: clamp(14px, 2.3vmin, 32px); color: var(--ink-soft); margin: 1vmin 0; line-height: 1.45; }
-#hint kbd, #help kbd { font-family: var(--label); color: var(--ink); border: 1px solid var(--ink-faint); border-radius: .6vmin; padding: 0 .6vmin; }
-#help { opacity: 0; transition: opacity .6s; pointer-events: none; font-size: clamp(14px, 2.3vmin, 32px); line-height: 1.7; text-align: left; }
-#help.show { opacity: 1; }
-#help b { color: var(--accent); font-weight: 600; display: inline-block; min-width: 2.4em; }
-#help .t { font-family: var(--serif); font-size: 1.3em; text-align: center; margin-bottom: .6em; }
+#hint kbd { font-family: var(--label); color: var(--ink); border: 1px solid var(--ink-faint); border-radius: .6vmin; padding: 0 .6vmin; }
+
 #menu { position: absolute; left: 12%; right: 12%; top: 50%; transform: translateY(-50%); z-index: 8; background: var(--panel); color: var(--ink);
   border-radius: 1.6vmin; font-size: clamp(16px, 2.6vmin, 36px); letter-spacing: .02em; padding: 1.1em 1.3em; display: none; box-shadow: 0 1.5vmin 5vmin rgba(0,0,0,.45); }
 #menu.open { display: block; }
@@ -69,1207 +60,146 @@ body.idle, body.idle * { cursor: none !important; }
 #menu .mi.on { opacity: 1; color: var(--accent); }
 #menu .mi.on::before { content: ''; position: absolute; left: 0; top: 50%; width: .4em; height: .4em; margin-top: -.2em; background: currentColor; border-radius: 50%; }
 #menu .mf { font-size: .7em; color: var(--ink-faint); margin-top: 1em; text-align: center; }
-#keepawake { position: fixed; width: 2px; height: 2px; opacity: .01; pointer-events: none; left: 0; bottom: 0; }
 </style>
 </head>
 <body>
 <div id="space"></div>
 <div id="stage">
-  <div id="frame">
-    <canvas id="back"></canvas>
-    <canvas id="fire"></canvas>
-    <canvas id="front"></canvas>
-    <canvas id="glow"></canvas>
-    <canvas id="fx"></canvas>
-    <canvas id="cat"></canvas>
-    <div id="light"></div>
-    <div id="dim"></div>
-    <div id="fade"></div>
-    <div id="hint">
-      <h1>Fireplace</h1>
-      <p>Press <kbd>OK</kbd> to start the sound and full screen.</p>
-      <p><kbd>◀</kbd> <kbd>▶</kbd> change the fireplace</p>
-      <p>Use the TV's own volume buttons for loudness.</p>
-      <p>Hold <kbd>OK</kbd> for music and settings</p>
-    </div>
-    <div id="focus" tabindex="0" aria-label="Fireplace"></div>
-    <div id="help">
-      <div class="t">Remote buttons</div>
-      <div><b>◀ ▶</b> change the fireplace</div>
-      <div><b>Volume</b> the TV's own buttons</div>
-      <div><b>⏯</b> pause the sound</div>
-      <div><b>OK</b> hold for a second: music, crackle, fire size, brightness, art wall</div>
-    </div>
-    <div id="menu"></div>
-    <div id="toast"></div>
+  <video class="clip" id="va" muted playsinline preload="auto"></video>
+  <video class="clip" id="vb" muted playsinline preload="auto"></video>
+  <div id="dim"></div>
+  <div id="fade"></div>
+  <div id="hint">
+    <h1>Fireplace</h1>
+    <p>Press <kbd>OK</kbd> to start the crackle and full screen.</p>
+    <p><kbd>◀</kbd> <kbd>▶</kbd> change the clip</p>
+    <p>Hold <kbd>OK</kbd> for settings. Use the TV's own volume buttons for loudness.</p>
   </div>
+  <div id="focus" tabindex="0" aria-label="Fireplace"></div>
+  <div id="menu"></div>
+  <div id="toast"></div>
 </div>
-<video id="keepawake" src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAABbzdXVpZNj+w9YbDkg8kpdYKId+xIEAAAAAbWFuaWZlc3QAAAAAAAAAAAAAABbGanVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAFqBqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOmNlYTc1MDFhLTQ1YmUtNGRjYy1iZmIzLTBlMjEwYjg4OWRmYgAAAAPYanVtYgAAAClqdW1kYzJhcwARABCAAACqADibcQNjMnBhLmFzc2VydGlvbnMAAAAAuGp1bWIAAABEanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5pbmdyZWRpZW50LnYzAAAAABhjMnNoMKVknS828rPGGGQVDJfc+wAAAGxjYm9yo2lkYzpmb3JtYXRpdmlkZW8vbXA0amluc3RhbmNlSUR4LHhtcDppaWQ6ZDhjZmU3NzYtODc1Ny00MzFlLTljYWMtZjZjMjk4ZjliMTZibHJlbGF0aW9uc2hpcGhwYXJlbnRPZgAAAeJqdW1iAAAAQWp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuYWN0aW9ucy52MgAAAAAYYzJzaGxMwAJe94bPrG1q4RGNNFMAAAGZY2JvcqJnYWN0aW9uc4KiZmFjdGlvbmtjMnBhLm9wZW5lZGpwYXJhbWV0ZXJzoWtpbmdyZWRpZW50c4GiY3VybHgtc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5pbmdyZWRpZW50LnYzZGhhc2hYIDgxFYNy34KVk4oMycBcJ9OG/sAsSawGDLh5rPdbirHlpGZhY3Rpb254HWNvbS5hbnRocm9waWMuY2xhdWRlLnByb3ZpZGVkanBhcmFtZXRlcnOheB9jb20uYW50aHJvcGljLm9yaWdpbi1jb25maWRlbmNlZ3Vua25vd25rZGVzY3JpcHRpb254ZkNsYXVkZSBwcm92aWRlZCB0aGlzIGZpbGUgYXQgdGhlIHJlcXVlc3Qgb2YgYSB1c2VyIGFuZCBtYXkgaGF2ZSBjcmVhdGVkIG9yIG1vZGlmaWVkIHRoZSBmaWxlIGNvbnRlbnRzLm1zb2Z0d2FyZUFnZW50oWRuYW1lZkNsYXVkZXJhbGxBY3Rpb25zSW5jbHVkZWT1AAABDWp1bWIAAABDanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5oYXNoLmJtZmYudjMAAAAAGGMyc2gXof/fRoo521vel/P19hCYAAAAwmNib3KkY2FsZ2ZzaGEyNTZkaGFzaFggqRvFduktT49zpQH3LMjV8pIojGY47Db2pTVyuw+p6RFkbmFtZW5qdW1iZiBtYW5pZmVzdGpleGNsdXNpb25zhaJkZGF0YYGiZXZhbHVlUNj+w9YbDkg8kpdYKId+xIFmb2Zmc2V0CGV4cGF0aGUvdXVpZKFleHBhdGhlL2Z0eXChZXhwYXRoZS9tZnJhoWV4cGF0aGUvZnJlZaFleHBhdGhlL3NraXAAAAJBanVtYgAAACdqdW1kYzJjbAARABCAAACqADibcQNjMnBhLmNsYWltLnYyAAAAAhJjYm9ypWNhbGdmc2hhMjU2aXNpZ25hdHVyZXhNc2VsZiNqdW1iZj0vYzJwYS91cm46YzJwYTpjZWE3NTAxYS00NWJlLTRkY2MtYmZiMy0wZTIxMGI4ODlkZmIvYzJwYS5zaWduYXR1cmVqaW5zdGFuY2VJRHgseG1wOmlpZDo2YjY5NDQyMC1jZTFkLTQxZTUtYWUyNC1iMTQ5MzZlOTM5ZmNyY3JlYXRlZF9hc3NlcnRpb25zg6JjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggODEVg3LfgpWTigzJwFwn04b+wCxJrAYMuHms91uKseWiY3VybHgqc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5hY3Rpb25zLnYyZGhhc2hYIAKAT0WQfGFIBMiQUjdJJ66NLvArv1SNj70k3nuIQoDNomN1cmx4LHNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaGFzaC5ibWZmLnYzZGhhc2hYIPiMsN0VAN2eKVfSVqjMf/d3V/R5FsTgweMuBBg4ThjWdGNsYWltX2dlbmVyYXRvcl9pbmZvo2RuYW1lb0FudGhyb3BpYyBGaWxlc2d2ZXJzaW9uZTEuMC4wa3NwZWNWZXJzaW9uZTIuNC4wAAAQOGp1bWIAAAAoanVtZGMyY3MAEQAQgAAAqgA4m3EDYzJwYS5zaWduYXR1cmUAAAAQCGNib3LShFkCEqIBJhghWQIKMIICBjCCAY2gAwIBAgIUQOWgCu7COdC+uIP6BkIFPWdVEwAwCgYIKoZIzj0EAwMwSTEXMBUGA1UEChMOQW50aHJvcGljLCBQQkMxLjAsBgNVBAMTJUFudGhyb3BpYyBDb250ZW50IENyZWRlbnRpYWxzIFJvb3QgQ0EwHhcNMjYwODA3MTg0MzU2WhcNMjgwODA2MTk0MzU2WjBEMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEpMCcGA1UEAxMgQW50aHJvcGljIENsYXVkZSBDb250ZW50IFNpZ25pbmcwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASYegpry1AYBRTVNL1CpTlbROnY3dey+UrsF9C3phYrATN3ZHf93Mo8RQN0KOUuOn19P4oWNFWe5n2/She9N7eTo1gwVjAOBgNVHQ8BAf8EBAMCB4AwFQYDVR0lBA4wDAYKKwYBBAGD6F4CATAMBgNVHRMBAf8EAjAAMB8GA1UdIwQYMBaAFM5R4gSBTmRbI/jjxM+aPpzB11zCMAoGCCqGSM49BAMDA2cAMGQCMDFzHRSeAXrSy1WOzkbhPZ6Km2wGTmZ/2gK18k8BQGXyqz88Rdrz6CTX9flAnYNVxgIwcF9c3fVhqmJKpi+UhasNUMko69cyX6STPfta3Q8EjyzDjzoyrol46FP6VFHhvUcJoWNwYWRZDZ4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2WEDX7wOTjvjw8THJfCSX2xW0UkGIdFSRmfoC0xUMbUIEm76knrYjeEZ9XLDoF9CstsYxTwxfQBw2PGd9uDMQJWS6AAADS21vb3YAAABsbXZoZAAAAAAAAAAAAAAAAAAAA+gAACcQAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAJ1dHJhawAAAFx0a2hkAAAAAwAAAAAAAAAAAAAAAQAAAAAAACcQAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAQAAAAEAAAAAAAJGVkdHMAAAAcZWxzdAAAAAAAAAABAAAnEAAAAAAAAQAAAAAB7W1kaWEAAAAgbWRoZAAAAAAAAAAAAAAAAAAAQAAAAoAAVcQAAAAAAC1oZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAZhtaW5mAAAAFHZtaGQAAAABAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAFYc3RibAAAALhzdHNkAAAAAAAAAAEAAACoYXZjMQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAQABAASAAAAEgAAAAAAAAAARVMYXZjNjAuMzEuMTAyIGxpYngyNjQAAAAAAAAAAAAAABj//wAAAC5hdmNDAULACv/hABZnQsAK2R7ARAAAAwAEAAADAAg8SJkgAQAFaMuDyyAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAACRwAAAkcAAAAYc3R0cwAAAAAAAAABAAAACgAAQAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAACgAAAAEAAAA8c3RzegAAAAAAAAAAAAAACgAAAoYAAAAKAAAACgAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAUc3RjbwAAAAAAAAABAAAabgAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAALhbWRhdAAAAnAGBf//bNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAOZYiEBf///w9FAAFXn4AAAAAGQZo4C/qAAAAABkGaVAL+oAAAAAVBmmAX9QAAAAVBmoAX9QAAAAVBmqAX9QAAAAVBmsAX9QAAAAVBmuAX9QAAAAVBmwAW9QAAAAVBmyAV9Q==" muted loop playsinline></video>
 <script>
 (function () {
 'use strict';
+var XF = 1.6; /* seconds of crossfade when a clip loops into itself */
+var DIMS = [{ name: 'full', a: 0 }, { name: 'softer', a: .25 }, { name: 'low', a: .45 }, { name: 'night', a: .65 }];
+var state = { clip: 0, crackle: true, music: false, dim: 0, rotate: 'none' };
+try { var s = JSON.parse(localStorage.getItem('fireplace-clips') || '{}'); for (var k in s) state[k] = s[k]; } catch (e) {}
+function save() { try { localStorage.setItem('fireplace-clips', JSON.stringify(state)); } catch (e) {} }
 
-/* ---------- Settings, kept in this TV's browser ---------- */
-var KEY = 'fireplace-v1';
-var state = { scene: 0, vol: 0.6, crackle: true, music: 0, size: 1, dim: 0, rotate: null };
-try { var saved = JSON.parse(localStorage.getItem(KEY) || '{}'); for (var k in saved) state[k] = saved[k]; } catch (e) {}
-if (!state.rotate) {
-  /* Follow the art wall's turn setting, since both pages live on the same TV. */
-  try { var art = JSON.parse(localStorage.getItem('art-wall-v2') || '{}'); state.rotate = art.rotate || 'none'; } catch (e) { state.rotate = 'none'; }
-}
-state.vol = 1;  /* the TV's own buttons set loudness */
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+var stage = document.getElementById('stage'), dimEl = document.getElementById('dim'), fadeEl = document.getElementById('fade');
+var vids = [document.getElementById('va'), document.getElementById('vb')], cur = 0, fading = false;
+var CLIPS = [], CRACKLE = '', MUSIC = '';
 
-var SIZES = [
-  { name: 'Low and cozy', h: 0.78, crackle: 0.7, glow: 0.8 },
-  { name: 'Lively', h: 1.0, crackle: 1.0, glow: 1.0 },
-  { name: 'Roaring', h: 1.22, crackle: 1.45, glow: 1.2 }
-];
-var DIMS = [{ name: 'Full brightness', a: 0 }, { name: 'Soft', a: 0.28 }, { name: 'Night', a: 0.5 }];
-var MUSIC = ['Off', 'Soft piano', 'Warm strings', 'Music box'];
-
-/* ---------- Small helpers ---------- */
-function rng(seed) {
-  var a = seed >>> 0;
-  return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-}
-function hexRgb(h) { h = h.replace('#', ''); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; }
-function shade(hex, f) {
-  var c = hexRgb(hex);
-  return 'rgb(' + Math.max(0, Math.min(255, Math.round(c[0] * f))) + ',' + Math.max(0, Math.min(255, Math.round(c[1] * f))) + ',' + Math.max(0, Math.min(255, Math.round(c[2] * f))) + ')';
-}
-function pick(R, arr) { return arr[Math.floor(R() * arr.length) % arr.length]; }
-function rr(c, x, y, w, h, r) {
-  r = Math.min(r, w / 2, h / 2);
-  c.beginPath(); c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r); c.lineTo(x + w, y + h - r);
-  c.quadraticCurveTo(x + w, y + h, x + w - r, y + h); c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r); c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
-}
-var grainCanvas = null;
-function grain() {
-  if (grainCanvas) return grainCanvas;
-  var g = document.createElement('canvas'); g.width = g.height = 180; var c = g.getContext('2d'), R = rng(7);
-  for (var i = 0; i < 2600; i++) { var l = R() < 0.5; c.fillStyle = l ? 'rgba(255,240,220,' + (R() * 0.10) + ')' : 'rgba(0,0,0,' + (R() * 0.16) + ')'; c.fillRect(R() * 180, R() * 180, 1 + R() * 1.6, 1 + R() * 1.6); }
-  return (grainCanvas = g);
-}
-function texture(c, x, y, w, h, alpha) {
-  c.save(); c.globalAlpha = alpha == null ? 1 : alpha; c.fillStyle = c.createPattern(grain(), 'repeat'); c.fillRect(x, y, w, h); c.restore();
-}
-function vignette(c, W, H, strength, topDark) {
-  var g = c.createRadialGradient(W / 2, H * 0.62, H * 0.18, W / 2, H * 0.62, H * 0.78);
-  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + strength + ')');
-  c.fillStyle = g; c.fillRect(0, 0, W, H);
-  var t = c.createLinearGradient(0, 0, 0, H * 0.45);
-  t.addColorStop(0, 'rgba(0,0,0,' + topDark + ')'); t.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = t; c.fillRect(0, 0, W, H * 0.45);
-}
-function warmLight(c, x, y, r, a) {
-  c.save(); c.globalCompositeOperation = 'lighter';
-  var g = c.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, 'rgba(255,130,50,' + a + ')'); g.addColorStop(0.45, 'rgba(255,110,40,' + (a * 0.4) + ')'); g.addColorStop(1, 'rgba(255,100,30,0)');
-  c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); c.restore();
+/* ---------- The clip list ---------- */
+function parseList(txt) {
+  txt.split(/\r?\n/).forEach(function (line) {
+    line = line.trim();
+    if (!line || line.charAt(0) === '#') return;
+    var m = /^(crackle|music)\s*:\s*(.+)$/i.exec(line);
+    if (m) { if (m[1].toLowerCase() === 'crackle') CRACKLE = m[2].trim(); else MUSIC = m[2].trim(); return; }
+    var parts = line.split('|'), src = parts[0].trim();
+    var name = parts[1] ? parts[1].trim() : src.split('/').pop().replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ');
+    CLIPS.push({ src: src, name: name });
+  });
 }
 
-/* ---------- Surfaces ---------- */
-function brickWall(c, R, x0, y0, w, h, o) {
-  c.fillStyle = o.mortar; c.fillRect(x0, y0, w, h);
-  var bw = o.bw, bh = bw * (o.ratio || 0.32), m = bw * 0.05, row = 0;
-  for (var y = y0 - R() * bh; y < y0 + h; y += bh, row++) {
-    var off = row % 2 ? -bw / 2 : -R() * 0.0;
-    for (var x = x0 + off - (row % 2 ? 0 : bw * 0.25); x < x0 + w; x += bw) {
-      var col = pick(R, o.colors), f = 0.86 + R() * 0.26;
-      c.fillStyle = shade(col, f);
-      rr(c, x + m / 2, y + m / 2, bw - m, bh - m, m * 0.6); c.fill();
-      var g = c.createLinearGradient(0, y, 0, y + bh);
-      g.addColorStop(0, 'rgba(255,225,190,0.07)'); g.addColorStop(1, 'rgba(0,0,0,0.16)');
-      c.fillStyle = g; c.fill();
-      if (R() < 0.35) { c.fillStyle = 'rgba(0,0,0,' + (0.05 + R() * 0.1) + ')'; c.fillRect(x + m + R() * bw * 0.5, y + m, bw * (0.2 + R() * 0.3), bh - 2 * m); }
-    }
-  }
-  texture(c, x0, y0, w, h, 1);
+/* ---------- Video: two players, so each clip fades into its own start ---------- */
+function other() { return vids[1 - cur]; }
+function playSafe(v) { try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
+function loadClip(i) {
+  if (!CLIPS.length) return;
+  state.clip = (i + CLIPS.length) % CLIPS.length; save();
+  var src = CLIPS[state.clip].src;
+  fading = false;
+  vids.forEach(function (v) { v.classList.remove('show'); v.pause(); v.loop = false; v.src = src; v.load(); });
+  cur = 0;
+  vids[0].addEventListener('canplay', function once() {
+    vids[0].removeEventListener('canplay', once);
+    playSafe(vids[0]); vids[0].classList.add('show'); fadeEl.classList.add('clear');
+  });
 }
-function stoneWall(c, R, x0, y0, w, h, o) {
-  c.fillStyle = o.mortar; c.fillRect(x0, y0, w, h);
-  var y = y0 - R() * o.sh;
-  while (y < y0 + h) {
-    var rh = o.sh * (0.55 + R() * 0.8), x = x0 - R() * o.sw;
-    while (x < x0 + w) {
-      var sw = o.sw * (0.6 + R() * 1.1), gap = o.sw * 0.045;
-      var col = pick(R, o.colors), f = 0.8 + R() * 0.35;
-      var sx = x + gap, sy = y + gap + R() * gap, ww = sw - gap * 2, hh = rh - gap * 2 - R() * gap;
-      rr(c, sx, sy, ww, hh, Math.min(ww, hh) * (0.25 + R() * 0.25));
-      c.fillStyle = shade(col, f); c.fill();
-      var g = c.createLinearGradient(sx, sy, sx + ww * 0.4, sy + hh);
-      g.addColorStop(0, 'rgba(255,235,210,0.16)'); g.addColorStop(0.5, 'rgba(255,235,210,0)'); g.addColorStop(1, 'rgba(0,0,0,0.32)');
-      c.fillStyle = g; c.fill();
-      c.save(); c.clip();
-      for (var s = 0; s < 4; s++) { c.fillStyle = 'rgba(' + (R() < 0.5 ? '0,0,0' : '255,240,220') + ',' + (R() * 0.07) + ')'; c.beginPath(); c.ellipse(sx + R() * ww, sy + R() * hh, ww * (0.1 + R() * 0.3), hh * (0.1 + R() * 0.3), R() * 3, 0, 7); c.fill(); }
-      c.restore();
-      x += sw;
-    }
-    y += rh;
+function onTime() {
+  var v = vids[cur];
+  if (this !== v || fading || !v.duration || !isFinite(v.duration)) return;
+  if (v.duration < XF * 3) { v.loop = true; return; }
+  if (v.currentTime >= v.duration - XF - .15) {
+    fading = true;
+    var n = other();
+    try { n.currentTime = 0; } catch (e) {}
+    playSafe(n);
+    n.classList.add('show'); v.classList.remove('show');
+    cur = 1 - cur;
+    setTimeout(function () { v.pause(); try { v.currentTime = 0; } catch (e) {} fading = false; }, XF * 1000 + 200);
   }
-  texture(c, x0, y0, w, h, 1);
 }
-function plaster(c, R, x0, y0, w, h, base) {
-  c.fillStyle = base; c.fillRect(x0, y0, w, h);
-  for (var i = 0; i < 70; i++) {
-    var x = x0 + R() * w, y = y0 + R() * h, r = w * (0.08 + R() * 0.3), l = R() < 0.5;
-    var g = c.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, l ? 'rgba(255,240,220,' + (R() * 0.05) + ')' : 'rgba(0,0,0,' + (R() * 0.07) + ')'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  texture(c, x0, y0, w, h, 0.6);
-}
-function wood(c, R, x, y, w, h, base, dark) {
-  var g = c.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, shade(base, 1.15)); g.addColorStop(0.5, base); g.addColorStop(1, shade(base, 0.6));
-  c.fillStyle = g; c.fillRect(x, y, w, h);
-  c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
-  for (var i = 0; i < Math.max(8, h / 2.2); i++) {
-    var yy = y + R() * h, a = 0.05 + R() * 0.12, amp = h * (0.02 + R() * 0.05), fr = 0.002 + R() * 0.01, ph = R() * 6;
-    c.strokeStyle = 'rgba(' + (dark ? '20,10,4' : '255,230,200') + ',' + a + ')'; c.lineWidth = 0.6 + R() * 1.4;
-    c.beginPath(); for (var xx = x; xx <= x + w; xx += 12) { var yv = yy + Math.sin(xx * fr + ph) * amp; if (xx === x) c.moveTo(xx, yv); else c.lineTo(xx, yv); } c.stroke();
-  }
-  c.restore();
-  texture(c, x, y, w, h, 0.7);
-}
-function dropShadow(c, x, y, w, h, a) {
-  var g = c.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, 'rgba(0,0,0,' + a + ')'); g.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = g; c.fillRect(x, y, w, h);
+vids.forEach(function (v) {
+  v.addEventListener('timeupdate', onTime);
+  v.addEventListener('ended', function () { if (this === vids[cur] && !fading) { try { this.currentTime = 0; } catch (e) {} playSafe(this); } });
+  v.addEventListener('error', function () {
+    if (this !== vids[cur] || !CLIPS.length) return;
+    fadeEl.classList.add('clear');
+    toast('This clip will not play', CLIPS[state.clip].name);
+    if (CLIPS.length > 1) setTimeout(function () { changeClip(1); }, 2500);
+  });
+});
+function changeClip(d) {
+  if (CLIPS.length < 2) { if (CLIPS.length) toast(CLIPS[state.clip].name, 'the only clip so far'); return; }
+  fadeEl.classList.remove('clear');
+  setTimeout(function () { loadClip(state.clip + d); toast(CLIPS[state.clip].name); }, 800);
 }
 
-/* ---------- Fireplace parts ---------- */
-function firebox(c, R, O, opt) {
-  /* The inside of the firebox: sooty back wall, angled sides, ash floor. */
-  var bx = O.x + O.w * 0.14, bw = O.w * 0.72, bb = O.y + O.h * 0.84;
-  c.fillStyle = '#080504'; c.fillRect(O.x, O.y, O.w, O.h);
-  brickWall(c, R, bx, O.y, bw, bb - O.y, { bw: O.w * 0.13, mortar: '#1c120e', colors: opt.back || ['#3a2219', '#33201a', '#422a1f', '#2d1c15'] });
-  c.fillStyle = '#120a07';
-  c.beginPath(); c.moveTo(O.x, O.y); c.lineTo(bx, O.y + O.h * 0.05); c.lineTo(bx, bb); c.lineTo(O.x, O.y + O.h); c.closePath(); c.fill();
-  c.beginPath(); c.moveTo(O.x + O.w, O.y); c.lineTo(bx + bw, O.y + O.h * 0.05); c.lineTo(bx + bw, bb); c.lineTo(O.x + O.w, O.y + O.h); c.closePath(); c.fill();
-  var sg = c.createLinearGradient(O.x, 0, bx, 0); sg.addColorStop(0, 'rgba(70,40,25,.0)'); sg.addColorStop(1, 'rgba(90,50,30,.35)');
-  c.fillStyle = sg; c.beginPath(); c.moveTo(O.x, O.y); c.lineTo(bx, O.y + O.h * 0.05); c.lineTo(bx, bb); c.lineTo(O.x, O.y + O.h); c.closePath(); c.fill();
-  sg = c.createLinearGradient(O.x + O.w, 0, bx + bw, 0); sg.addColorStop(0, 'rgba(70,40,25,.0)'); sg.addColorStop(1, 'rgba(90,50,30,.35)');
-  c.fillStyle = sg; c.beginPath(); c.moveTo(O.x + O.w, O.y); c.lineTo(bx + bw, O.y + O.h * 0.05); c.lineTo(bx + bw, bb); c.lineTo(O.x + O.w, O.y + O.h); c.closePath(); c.fill();
-  c.fillStyle = '#2b1e17';
-  c.beginPath(); c.moveTo(O.x, O.y + O.h); c.lineTo(bx, bb); c.lineTo(bx + bw, bb); c.lineTo(O.x + O.w, O.y + O.h); c.closePath(); c.fill();
-  texture(c, O.x, bb, O.w, O.y + O.h - bb, 1);
-  var soot = c.createLinearGradient(0, O.y, 0, O.y + O.h * 0.7);
-  soot.addColorStop(0, 'rgba(0,0,0,.95)'); soot.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = soot; c.fillRect(O.x, O.y, O.w, O.h * 0.7);
-  warmLight(c, O.x + O.w / 2, bb, O.w * 0.75, 0.42);
-}
-
-function log(c, g, R, x1, y1, x2, y2, r, cap) {
-  var dx = x2 - x1, dy = y2 - y1, L = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
-  c.save(); c.translate(x1, y1); c.rotate(a);
-  var gr = c.createLinearGradient(0, -r, 0, r);
-  gr.addColorStop(0, '#6e4c34'); gr.addColorStop(0.3, '#4b3222'); gr.addColorStop(0.7, '#21140c'); gr.addColorStop(1, '#0e0805');
-  rr(c, 0, -r, L, r * 2, r * 0.7); c.fillStyle = gr; c.fill();
-  c.save(); c.clip();
-  for (var i = 0; i < L / 5; i++) {
-    var bx = R() * L, by = -r + R() * r * 2, bl = L * (0.06 + R() * 0.22);
-    c.strokeStyle = R() < 0.75 ? 'rgba(12,6,3,' + (0.3 + R() * 0.4) + ')' : 'rgba(170,130,95,' + (0.08 + R() * 0.12) + ')';
-    c.lineWidth = 0.8 + R() * r * 0.09;
-    c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + bl / 2, by + (R() - 0.5) * r * 0.3, bx + bl, by + (R() - 0.5) * r * 0.2); c.stroke();
-  }
-  for (i = 0; i < 6; i++) { c.fillStyle = 'rgba(8,5,3,' + (0.35 + R() * 0.4) + ')'; c.beginPath(); c.ellipse(R() * L, r * (0.2 + R() * 0.8), L * (0.05 + R() * 0.12), r * (0.2 + R() * 0.4), 0, 0, 7); c.fill(); }
-  c.restore();
-  if (cap) {
-    var ex = cap > 0 ? L - r * 0.3 : r * 0.3;
-    var eg = c.createRadialGradient(ex, 0, 0, ex, 0, r);
-    eg.addColorStop(0, '#caa071'); eg.addColorStop(0.55, '#a57a4f'); eg.addColorStop(0.8, '#5b3b24'); eg.addColorStop(1, '#2a190f');
-    c.fillStyle = eg; c.beginPath(); c.ellipse(ex, 0, r * 0.36, r * 0.98, 0, 0, 7); c.fill();
-    c.strokeStyle = 'rgba(90,55,30,.45)'; c.lineWidth = 1;
-    for (var k = 1; k < 5; k++) { c.beginPath(); c.ellipse(ex, 0, r * 0.36 * k / 5.5, r * 0.98 * k / 5.5, 0, 0, 7); c.stroke(); }
-    c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(ex, r * 0.25, r * 0.36, r * 0.75, 0, 0, Math.PI); c.fill();
-  }
-  c.restore();
-  /* Ember cracks on the underside, drawn on the glow layer so they can breathe. */
-  g.save(); g.translate(x1, y1); g.rotate(a);
-  var band = g.createLinearGradient(0, r * 0.1, 0, r * 1.05);
-  band.addColorStop(0, 'rgba(255,90,10,0)'); band.addColorStop(0.7, 'rgba(255,100,20,.45)'); band.addColorStop(1, 'rgba(255,150,50,.75)');
-  g.fillStyle = band; rr(g, r * 0.4, r * 0.1, L - r * 0.8, r * 0.95, r * 0.5); g.fill();
-  g.shadowColor = '#ff5a00'; g.shadowBlur = r * 0.5;
-  for (i = 0; i < L / (r * 0.7); i++) {
-    var cx = r * 0.5 + R() * (L - r), cy = r * (0.35 + R() * 0.55);
-    g.strokeStyle = R() < 0.5 ? 'rgba(255,170,70,.9)' : 'rgba(255,110,30,.85)'; g.lineWidth = 1 + R() * r * 0.07;
-    g.beginPath(); g.moveTo(cx, cy); for (var s = 0; s < 3; s++) { cx += r * (0.15 + R() * 0.3); cy += (R() - 0.5) * r * 0.25; g.lineTo(cx, cy); } g.stroke();
-  }
-  g.restore();
-}
-function coals(c, g, R, cx, y, w) {
-  for (var i = 0; i < 46; i++) {
-    var x = cx + (R() - 0.5) * w, yy = y - R() * w * 0.035, s = w * (0.012 + R() * 0.03);
-    c.fillStyle = shade('#1b100b', 0.7 + R() * 0.8); c.beginPath(); c.ellipse(x, yy, s * 1.3, s * 0.8, R() * 3, 0, 7); c.fill();
-    if (R() < 0.6) {
-      var gg = g.createRadialGradient(x, yy, 0, x, yy, s * 1.7);
-      gg.addColorStop(0, 'rgba(255,' + Math.round(110 + R() * 90) + ',30,.9)'); gg.addColorStop(1, 'rgba(255,80,10,0)');
-      g.fillStyle = gg; g.fillRect(x - s * 2, yy - s * 2, s * 4, s * 4);
-    }
-  }
-}
-function logPile(c, g, R, cx, y, w, opt) {
-  opt = opt || {};
-  coals(c, g, R, cx, y, w * 0.9);
-  var r = w * 0.075;
-  log(c, g, R, cx - w * 0.48, y - r * 0.9, cx + w * 0.44, y - r * 2.1, r * 1.05, 1);
-  log(c, g, R, cx + w * 0.46, y - r * 0.8, cx - w * 0.36, y - r * 2.6, r, -1);
-  log(c, g, R, cx - w * 0.30, y - r * 3.4, cx + w * 0.32, y - r * 3.0, r * 0.85, 1);
-  if (opt.andirons !== false) {
-    for (var s = -1; s <= 1; s += 2) {
-      var ax = cx + s * w * 0.42, ah = w * 0.2;
-      var ig = c.createLinearGradient(ax - w * 0.02, 0, ax + w * 0.02, 0);
-      ig.addColorStop(0, '#0b0908'); ig.addColorStop(0.5, '#3b302a'); ig.addColorStop(1, '#0b0908');
-      c.fillStyle = ig; rr(c, ax - w * 0.016, y - ah, w * 0.032, ah + w * 0.01, w * 0.01); c.fill();
-      c.fillStyle = '#16110e'; c.beginPath(); c.ellipse(ax, y + w * 0.01, w * 0.05, w * 0.012, 0, 0, 7); c.fill();
-      var kg = c.createRadialGradient(ax - w * 0.012, y - ah - w * 0.012, 0, ax, y - ah, w * 0.034);
-      kg.addColorStop(0, '#8a6c55'); kg.addColorStop(0.4, '#3a2c24'); kg.addColorStop(1, '#0d0a08');
-      c.fillStyle = kg; c.beginPath(); c.arc(ax, y - ah, w * 0.032, 0, 7); c.fill();
-    }
-  }
-}
-function candle(c, x, base, w, h, wax) {
-  /* A pillar candle. Returns where its flame sits. */
-  var top = base - h, ry = w * 0.12;
-  wax = wax || '#efe3cf';
-  var g = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-  g.addColorStop(0, shade(wax, 0.55)); g.addColorStop(0.38, wax); g.addColorStop(0.7, shade(wax, 0.86)); g.addColorStop(1, shade(wax, 0.5));
-  c.fillStyle = g;
-  c.beginPath(); c.moveTo(x - w / 2, top); c.lineTo(x - w / 2, base); c.ellipse(x, base, w / 2, ry, 0, Math.PI, 0, true); c.lineTo(x + w / 2, top); c.closePath(); c.fill();
-  var sg = c.createLinearGradient(0, top, 0, base); sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, 'rgba(0,0,0,.35)');
-  c.fillStyle = sg; c.fill();
-  c.fillStyle = shade(wax, 1.04); c.beginPath(); c.ellipse(x, top, w / 2, ry, 0, 0, 7); c.fill();
-  c.fillStyle = shade(wax, 0.86); c.beginPath(); c.ellipse(x, top + ry * 0.15, w * 0.38, ry * 0.7, 0, 0, 7); c.fill();
-  var lg = c.createRadialGradient(x, top + ry * 0.5, 0, x, top + ry * 0.5, w * 0.95);
-  lg.addColorStop(0, 'rgba(255,190,110,.55)'); lg.addColorStop(1, 'rgba(255,170,90,0)');
-  c.save(); c.beginPath(); c.moveTo(x - w / 2, top); c.lineTo(x - w / 2, base); c.lineTo(x + w / 2, base); c.lineTo(x + w / 2, top); c.ellipse(x, top, w / 2, ry, 0, 0, Math.PI, true); c.clip();
-  c.fillStyle = lg; c.fillRect(x - w, top - w, w * 2, w * 2); c.restore();
-  c.strokeStyle = '#1a120c'; c.lineWidth = Math.max(1.2, w * 0.025);
-  c.beginPath(); c.moveTo(x, top + ry * 0.2); c.quadraticCurveTo(x + w * 0.01, top - w * 0.06, x + w * 0.02, top - w * 0.1); c.stroke();
-  return { x: x + w * 0.02, y: top - w * 0.07, s: Math.max(9, w * 0.42) };
-}
-
-/* ---------- The fireplaces ---------- */
-/* Each one draws its back layer (inside the firebox), front layer (surround, logs, candles) and glow layer (embers),
-   and says where the fire burns. Coordinates are fractions of the portrait frame. */
-var SCENES = [
-  {
-    name: 'Brick hearth',
-    open: { x: 0.17, y: 0.405, w: 0.66, h: 0.47 },
-    fire: { base: 0.165, h: 0.72, bed: 0.68, lobes: 4.0, blue: 0.0, sparks: 1.0, speed: 1.0 },
-    light: [50, 78, 70],
-    draw: function (b, f, g, W, H, R) {
-      var O = px(this.open, W, H), rise = H * 0.075, cx = O.x + O.w / 2;
-      firebox(b, R, O, {});
-      /* Surround with an arched opening cut out. */
-      f.save(); f.beginPath(); f.rect(0, 0, W, H); archPath(f, O, rise); f.clip('evenodd');
-      brickWall(f, R, 0, 0, W, H, { bw: W * 0.118, mortar: '#4f433b', colors: ['#8a3b2a', '#7a3324', '#93452f', '#6e2f22', '#9c5036', '#83402c', '#74402f'] });
-      warmLight(f, cx, O.y + O.h * 0.75, W * 0.85, 0.22);
-      f.restore();
-      /* A ring of bricks set on end around the arch. */
-      var t = W * 0.075, n = 15, sx = O.y + rise;
-      for (var i = 0; i < n; i++) {
-        var a0 = Math.PI - (i / n) * Math.PI, a1 = Math.PI - ((i + 1) / n) * Math.PI, m = 0.006;
-        f.beginPath();
-        f.moveTo(cx + Math.cos(a0 - m) * O.w / 2, sx - Math.sin(a0 - m) * rise);
-        f.lineTo(cx + Math.cos(a0 - m) * (O.w / 2 + t), sx - Math.sin(a0 - m) * (rise + t));
-        f.lineTo(cx + Math.cos(a1 + m) * (O.w / 2 + t), sx - Math.sin(a1 + m) * (rise + t));
-        f.lineTo(cx + Math.cos(a1 + m) * O.w / 2, sx - Math.sin(a1 + m) * rise);
-        f.closePath(); f.fillStyle = shade(pick(R, ['#8a3b2a', '#7a3324', '#93452f', '#6e2f22']), 0.8 + R() * 0.3); f.fill();
-      }
-      for (var s = -1; s <= 1; s += 2) { var jx = s < 0 ? O.x - t : O.x + O.w; f.fillStyle = 'rgba(0,0,0,.18)'; f.fillRect(jx, sx, t, O.y + O.h - sx); }
-      /* Inner edge shading so the opening reads as deep. */
-      f.save(); f.beginPath(); archPath(f, O, rise); f.clip();
-      f.restore();
-      vignette(f, W, H, 0.6, 0.55);
-      /* Mantel shelf with candles. */
-      var my = H * 0.335, mh = H * 0.028;
-      dropShadow(f, W * 0.04, my + mh, W * 0.92, H * 0.03, 0.55);
-      wood(f, R, W * 0.04, my, W * 0.92, mh, '#5a3a24', true);
-      f.fillStyle = 'rgba(255,220,180,.10)'; f.fillRect(W * 0.04, my, W * 0.92, 2);
-      for (s = -1; s <= 1; s += 2) { wood(f, R, s < 0 ? W * 0.07 : W * 0.88, my + mh, W * 0.05, H * 0.045, '#4a2f1d', true); dropShadow(f, s < 0 ? W * 0.07 : W * 0.88, my + mh + H * 0.045, W * 0.05, H * 0.012, 0.4); }
-      this.flames = [
-        candle(f, W * 0.18, my + 2, W * 0.07, H * 0.085), candle(f, W * 0.26, my + 2, W * 0.055, H * 0.05),
-        candle(f, W * 0.74, my + 2, W * 0.06, H * 0.06), candle(f, W * 0.82, my + 2, W * 0.07, H * 0.1)
-      ];
-      /* Raised hearth. */
-      var hy = O.y + O.h, hh = H * 0.035;
-      stoneSlab(f, R, W * 0.09, hy, W * 0.82, hh);
-      f.fillStyle = '#100a07'; f.fillRect(0, hy + hh, W, H - hy - hh);
-      wood(f, R, 0, hy + hh + H * 0.01, W, H - hy - hh, '#2e1d12', true);
-      dropShadow(f, 0, hy + hh, W, H * 0.03, 0.7);
-      warmLight(f, cx, hy, W * 0.6, 0.18);
-      logPile(f, g, R, cx, O.y + O.h * 0.885, O.w * 0.74);
-    }
-  },
-  {
-    name: 'Fieldstone',
-    open: { x: 0.15, y: 0.43, w: 0.70, h: 0.43 },
-    fire: { base: 0.17, h: 0.72, bed: 0.72, lobes: 4.5, blue: 0.0, sparks: 1.1, speed: 1.0 },
-    light: [50, 78, 72],
-    draw: function (b, f, g, W, H, R) {
-      var O = px(this.open, W, H), cx = O.x + O.w / 2;
-      firebox(b, R, O, { back: ['#2f2a26', '#2a2420', '#36302a', '#26201c'] });
-      f.save(); f.beginPath(); f.rect(0, 0, W, H); f.rect(O.x, O.y, O.w, O.h); f.clip('evenodd');
-      stoneWall(f, R, 0, 0, W, H, { sw: W * 0.17, sh: H * 0.05, mortar: '#3e3832', colors: ['#8b8378', '#7a7064', '#9a8f80', '#6f675e', '#a39684', '#857766', '#7d6d5c', '#94897d'] });
-      warmLight(f, cx, O.y + O.h * 0.7, W * 0.9, 0.26);
-      f.restore();
-      vignette(f, W, H, 0.62, 0.55);
-      /* Heavy timber beam over the opening, doubling as the mantel. */
-      var by = O.y - H * 0.052, bh = H * 0.052;
-      dropShadow(f, W * 0.08, by + bh, W * 0.84, H * 0.025, 0.6);
-      wood(f, R, W * 0.08, by, W * 0.84, bh, '#4e3322', true);
-      f.fillStyle = 'rgba(0,0,0,.25)'; f.fillRect(W * 0.08, by + bh * 0.82, W * 0.84, bh * 0.18);
-      f.fillStyle = 'rgba(255,220,180,.10)'; f.fillRect(W * 0.08, by, W * 0.84, 2);
-      for (var s = 0; s < 4; s++) { var px1 = W * (0.12 + s * 0.255) + W * 0.04 * R(); f.fillStyle = '#1a120c'; f.beginPath(); f.arc(px1, by + bh * 0.5, W * 0.008, 0, 7); f.fill(); }
-      this.flames = [candle(f, W * 0.2, by + 2, W * 0.08, H * 0.07, '#e9dcc4'), candle(f, W * 0.8, by + 2, W * 0.065, H * 0.11, '#e9dcc4'), candle(f, W * 0.715, by + 2, W * 0.05, H * 0.055, '#e9dcc4')];
-      var hy = O.y + O.h, hh = H * 0.04;
-      stoneSlab(f, R, W * 0.05, hy, W * 0.9, hh);
-      f.fillStyle = '#0c0806'; f.fillRect(0, hy + hh, W, H - hy - hh);
-      wood(f, R, 0, hy + hh + H * 0.008, W, H - hy - hh, '#2a1a10', true);
-      dropShadow(f, 0, hy + hh, W, H * 0.03, 0.7);
-      warmLight(f, cx, hy, W * 0.6, 0.18);
-      logPile(f, g, R, cx, O.y + O.h * 0.88, O.w * 0.74);
-    }
-  },
-  {
-    name: 'Modern',
-    open: { x: 0.30, y: 0.2, w: 0.40, h: 0.6 },
-    fire: { base: 0.085, h: 0.8, bed: 0.82, lobes: 3.2, blue: 0.75, sparks: 0.0, speed: 1.15 },
-    light: [50, 64, 80],
-    draw: function (b, f, g, W, H, R) {
-      var O = px(this.open, W, H), cx = O.x + O.w / 2;
-      b.fillStyle = '#050403'; b.fillRect(O.x, O.y, O.w, O.h);
-      var ig = b.createLinearGradient(0, O.y, 0, O.y + O.h); ig.addColorStop(0, '#030202'); ig.addColorStop(1, '#1a0f0a');
-      b.fillStyle = ig; b.fillRect(O.x, O.y, O.w, O.h);
-      warmLight(b, cx, O.y + O.h * 0.92, O.w * 0.9, 0.5);
-      f.save(); f.beginPath(); f.rect(0, 0, W, H); f.rect(O.x, O.y, O.w, O.h); f.clip('evenodd');
-      plaster(f, R, 0, 0, W, H, '#6b5e52');
-      warmLight(f, cx, O.y + O.h * 0.55, W * 0.95, 0.3);
-      f.restore();
-      vignette(f, W, H, 0.7, 0.5);
-      /* Bed of river stones. */
-      var sy = O.y + O.h;
-      for (var i = 0; i < 70; i++) {
-        var x = O.x + R() * O.w, y = sy - R() * O.h * 0.06, r = O.w * (0.03 + R() * 0.035);
-        var sg = f.createLinearGradient(0, y - r * 0.6, 0, y + r * 0.6);
-        var tone = pick(R, ['#3a3633', '#4a4440', '#2c2826', '#575049', '#403a35']);
-        sg.addColorStop(0, shade(tone, 1.6)); sg.addColorStop(1, shade(tone, 0.5));
-        f.fillStyle = sg; f.beginPath(); f.ellipse(x, y, r, r * 0.6, (R() - 0.5) * 0.5, 0, 7); f.fill();
-        var gg = g.createRadialGradient(x, y - r * 0.4, 0, x, y - r * 0.4, r * 1.2);
-        gg.addColorStop(0, 'rgba(255,150,60,' + (0.25 + R() * 0.3) + ')'); gg.addColorStop(1, 'rgba(255,120,40,0)');
-        g.fillStyle = gg; g.fillRect(x - r * 1.5, y - r * 1.7, r * 3, r * 3);
-      }
-      /* Glass sheen and a slim black steel frame. */
-      var gl = f.createLinearGradient(O.x, O.y, O.x + O.w, O.y + O.h * 0.6);
-      gl.addColorStop(0, 'rgba(255,255,255,0)'); gl.addColorStop(0.45, 'rgba(255,255,255,0.045)'); gl.addColorStop(0.5, 'rgba(255,255,255,0.0)'); gl.addColorStop(1, 'rgba(255,255,255,0.02)');
-      f.fillStyle = gl; f.fillRect(O.x, O.y, O.w, O.h);
-      var fw = W * 0.018;
-      f.strokeStyle = '#0c0b0a'; f.lineWidth = fw; f.strokeRect(O.x - fw / 2, O.y - fw / 2, O.w + fw, O.h + fw);
-      f.strokeStyle = 'rgba(255,200,150,.12)'; f.lineWidth = 1.2; f.strokeRect(O.x - fw, O.y - fw, O.w + fw * 2, O.h + fw * 2);
-      /* Floating oak bench with two candles. */
-      var ky = H * 0.865, kh = H * 0.03;
-      dropShadow(f, W * 0.06, ky + kh, W * 0.88, H * 0.05, 0.55);
-      wood(f, R, W * 0.06, ky, W * 0.88, kh, '#8a6444', false);
-      f.fillStyle = 'rgba(255,220,180,.18)'; f.fillRect(W * 0.06, ky, W * 0.88, 2);
-      f.fillStyle = 'rgba(0,0,0,.35)'; f.fillRect(W * 0.06, ky + kh - 3, W * 0.88, 3);
-      this.flames = [candle(f, W * 0.78, ky + 2, W * 0.07, H * 0.06, '#e8ddd0'), candle(f, W * 0.86, ky + 2, W * 0.055, H * 0.035, '#e8ddd0')];
-      var vg = f.createLinearGradient(W * 0.14, 0, W * 0.24, 0);
-      vg.addColorStop(0, '#2a2622'); vg.addColorStop(0.45, '#5a524a'); vg.addColorStop(1, '#1e1b18');
-      f.fillStyle = vg; rr(f, W * 0.14, ky - H * 0.075, W * 0.1, H * 0.075 + 2, W * 0.03); f.fill();
-      f.strokeStyle = 'rgba(160,140,100,.6)'; f.lineWidth = 2;
-      for (var sprig = 0; sprig < 5; sprig++) { var ax = W * (0.17 + sprig * 0.01); f.beginPath(); f.moveTo(ax, ky - H * 0.07); f.quadraticCurveTo(ax + (sprig - 2) * W * 0.03, ky - H * 0.13, ax + (sprig - 2) * W * 0.05, ky - H * 0.17); f.stroke(); }
-    }
-  },
-  {
-    name: 'Candles',
-    open: null,
-    light: [50, 62, 75],
-    draw: function (b, f, g, W, H, R) {
-      plaster(f, R, 0, 0, W, H, '#3a2a20');
-      var N = { x: W * 0.12, y: H * 0.2, w: W * 0.76, h: H * 0.62 }, rise = W * 0.38;
-      f.save(); f.beginPath(); archPath(f, N, rise); f.clip();
-      plaster(f, R, N.x, N.y, N.w, N.h, '#24180f');
-      var sh = f.createLinearGradient(0, N.y, 0, N.y + N.h * 0.6); sh.addColorStop(0, 'rgba(0,0,0,.55)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
-      f.fillStyle = sh; f.fillRect(N.x, N.y, N.w, N.h);
-      var sd = f.createLinearGradient(N.x, 0, N.x + N.w * 0.12, 0); sd.addColorStop(0, 'rgba(0,0,0,.45)'); sd.addColorStop(1, 'rgba(0,0,0,0)');
-      f.fillStyle = sd; f.fillRect(N.x, N.y, N.w * 0.12, N.h);
-      warmLight(f, W / 2, N.y + N.h * 0.75, W * 0.6, 0.34);
-      f.restore();
-      f.strokeStyle = 'rgba(255,215,170,.10)'; f.lineWidth = 2; f.beginPath(); archPath(f, N, rise); f.stroke();
-      warmLight(f, W / 2, N.y + N.h * 0.8, W * 0.9, 0.18);
-      vignette(f, W, H, 0.7, 0.6);
-      /* Stone ledge. */
-      var ly = N.y + N.h, lh = H * 0.035;
-      stoneSlab(f, R, N.x - W * 0.04, ly, N.w + W * 0.08, lh);
-      dropShadow(f, N.x - W * 0.04, ly + lh, N.w + W * 0.08, H * 0.04, 0.6);
-      var cs = [[0.26, 0.16, 0.105], [0.37, 0.31, 0.115], [0.5, 0.22, 0.13], [0.62, 0.37, 0.115], [0.73, 0.19, 0.1]];
-      var front = [[0.32, 0.09, 0.095, 0.012], [0.555, 0.07, 0.09, 0.016], [0.69, 0.1, 0.085, 0.01]];
-      this.flames = [];
-      for (var i = 0; i < cs.length; i++) this.flames.push(candle(f, W * cs[i][0], ly + lh * 0.3, W * cs[i][2], H * cs[i][1]));
-      for (i = 0; i < front.length; i++) this.flames.push(candle(f, W * front[i][0], ly + lh * 0.3 + H * front[i][3], W * front[i][2], H * front[i][1]));
-      f.fillStyle = '#0d0907'; f.fillRect(0, ly + lh, W, H);
-      dropShadow(f, 0, ly + lh, W, H * 0.06, 0.6);
-    }
-  },
-  {
-    name: 'Just the fire',
-    open: { x: 0, y: 0, w: 1, h: 1 },
-    fire: { base: 0.12, h: 0.85, bed: 0.98, lobes: 5.5, blue: 0.0, sparks: 1.6, speed: 0.95 },
-    light: [50, 90, 60],
-    draw: function (b, f, g, W, H, R) {
-      var bg = b.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, '#000'); bg.addColorStop(0.6, '#0b0302'); bg.addColorStop(1, '#2a0a03');
-      b.fillStyle = bg; b.fillRect(0, 0, W, H);
-      warmLight(b, W / 2, H * 0.9, W * 1.1, 0.35);
-      logPile(f, g, R, W / 2, H * 0.915, W * 1.05, { andirons: false });
-      var fl = f.createLinearGradient(0, H * 0.9, 0, H);
-      fl.addColorStop(0, 'rgba(10,5,3,0)'); fl.addColorStop(0.4, 'rgba(10,5,3,.9)'); fl.addColorStop(1, '#050302');
-      f.fillStyle = fl; f.fillRect(0, H * 0.9, W, H * 0.1);
-      this.flames = [];
-    }
-  }
-];
-/* ---------- The library: a hearth built into a wall of honey-oak shelves ---------- */
-var OAK = '#a8733b', OAK_DARK = '#5b3a1c';
-var BOOKS = ['#6f7b5e', '#8a4a32', '#d8cdb4', '#2f3c4f', '#b8893f', '#5b4636', '#9a3f35', '#7d8c86', '#c9b48e', '#3f4a3a', '#a86b4c', '#e2d8c2', '#46525e', '#7a5a3a'];
-function vbeam(c, R, x, y, w, h, base) {
-  var g = c.createLinearGradient(x, 0, x + w, 0);
-  g.addColorStop(0, shade(base, 0.72)); g.addColorStop(0.35, shade(base, 1.08)); g.addColorStop(1, shade(base, 0.8));
-  c.fillStyle = g; c.fillRect(x, y, w, h);
-  c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
-  for (var i = 0; i < 6; i++) { c.strokeStyle = 'rgba(60,30,10,' + (0.06 + R() * 0.1) + ')'; c.lineWidth = 0.6 + R(); var xx = x + R() * w; c.beginPath(); c.moveTo(xx, y); c.bezierCurveTo(xx + (R() - 0.5) * w * 0.4, y + h * 0.3, xx + (R() - 0.5) * w * 0.4, y + h * 0.6, xx, y + h); c.stroke(); }
-  c.restore();
-  texture(c, x, y, w, h, 0.5);
-}
-function leaf(c, x, y, s, a, col) {
-  c.save(); c.translate(x, y); c.rotate(a);
-  c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-s * 0.7, -s * 0.2, -s * 0.6, -s * 1.0, 0, -s * 0.8); c.bezierCurveTo(s * 0.6, -s * 1.0, s * 0.7, -s * 0.2, 0, 0); c.closePath();
-  c.fillStyle = col; c.fill();
-  c.strokeStyle = 'rgba(230,220,140,.35)'; c.lineWidth = Math.max(0.6, s * 0.05); c.beginPath(); c.moveTo(0, -s * 0.05); c.lineTo(0, -s * 0.72); c.stroke();
-  c.restore();
-}
-function vine(c, R, x, y, len, s, drift) {
-  /* A trailing pothos stem with heart-shaped leaves. */
-  var px1 = x, py = y, ang = Math.PI / 2 + drift * 0.3, step = s * 0.55;
-  c.strokeStyle = '#4c6b2c'; c.lineWidth = Math.max(1, s * 0.07); c.lineCap = 'round';
-  var pts = [];
-  for (var d = 0; d < len; d += step) {
-    ang += (R() - 0.5) * 0.35 + (Math.PI / 2 - ang) * 0.12 + drift * 0.02;
-    var nx = px1 + Math.cos(ang) * step, ny = py + Math.sin(ang) * step;
-    c.beginPath(); c.moveTo(px1, py); c.lineTo(nx, ny); c.stroke();
-    pts.push([nx, ny]); px1 = nx; py = ny;
-  }
-  for (var i = 0; i < pts.length; i++) {
-    var side = i % 2 ? 1 : -1, sz = s * (0.65 + R() * 0.45) * (1 - i / pts.length * 0.35);
-    leaf(c, pts[i][0], pts[i][1], sz, side * (0.9 + R() * 0.7) + Math.PI, pick(R, ['#5e8a36', '#6f9a3f', '#557d30', '#86a94a', '#4f7a2e']));
-  }
-}
-function pot(c, x, base, w, h, col) {
-  var g = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-  g.addColorStop(0, shade(col, 0.6)); g.addColorStop(0.4, col); g.addColorStop(1, shade(col, 0.55));
-  c.fillStyle = g; c.beginPath(); c.moveTo(x - w / 2, base - h); c.lineTo(x + w / 2, base - h); c.lineTo(x + w * 0.38, base); c.lineTo(x - w * 0.38, base); c.closePath(); c.fill();
-  c.fillStyle = shade(col, 1.08); c.fillRect(x - w / 2 - 1, base - h, w + 2, h * 0.14);
-}
-function shelfItems(c, R, x, y, w, h, wall) {
-  /* Books standing, leaning and stacked, with a frame or a plant now and then. */
-  var cx = x + w * 0.03, bottom = y + h, left = x + w - w * 0.03, leaned = false;
-  while (cx < left - h * 0.06) {
-    var r = R(), room = left - cx;
-    if (r < 0.06 && room > h * 0.6) {
-      var fw = h * (0.45 + R() * 0.2), fh = fw * (1.1 + R() * 0.25);
-      c.fillStyle = R() < 0.5 ? '#1e1915' : '#7a5530'; c.fillRect(cx, bottom - fh, fw, fh);
-      c.fillStyle = '#e9e0cc'; c.fillRect(cx + fw * 0.1, bottom - fh + fw * 0.1, fw * 0.8, fh - fw * 0.2);
-      var pg = c.createLinearGradient(0, bottom - fh, 0, bottom); pg.addColorStop(0, pick(R, ['#9fb0b5', '#c7b49a', '#8e9a7a'])); pg.addColorStop(1, pick(R, ['#5e5040', '#6f7a5c', '#40463f']));
-      c.fillStyle = pg; c.fillRect(cx + fw * 0.2, bottom - fh + fw * 0.2, fw * 0.6, fh - fw * 0.4);
-      cx += fw + h * 0.04;
-    } else if (r < 0.1 && room > h * 0.45) {
-      var pw = h * 0.32; pot(c, cx + pw / 2, bottom, pw, pw * 0.85, R() < 0.5 ? '#e7e1d6' : '#b5653f');
-      for (var l = 0; l < 7; l++) leaf(c, cx + pw / 2 + (R() - 0.5) * pw * 0.6, bottom - pw * 0.8, h * 0.13, (R() - 0.5) * 1.8, pick(R, ['#5e8a36', '#6f9a3f', '#4f7a2e']));
-      cx += pw + h * 0.05;
-    } else if (r < 0.2 && room > h * 0.7) {
-      var sw = h * (0.55 + R() * 0.25), sy = bottom, n = 2 + Math.floor(R() * 4);
-      for (var s = 0; s < n; s++) { var th = h * (0.06 + R() * 0.05), ww = sw * (0.85 + R() * 0.15); c.fillStyle = shade(pick(R, BOOKS), 0.85 + R() * 0.25); c.fillRect(cx + (sw - ww) / 2, sy - th, ww, th); c.fillStyle = 'rgba(255,240,210,.12)'; c.fillRect(cx + (sw - ww) / 2, sy - th, ww, 1.5); sy -= th; }
-      cx += sw + h * 0.03;
-    } else if (r < 0.24 && !leaned && room > h * 0.4) {
-      var lw = h * 0.1, lh = h * (0.7 + R() * 0.15), la = 0.28;
-      c.save(); c.translate(cx + lh * Math.sin(la), bottom); c.rotate(-la); c.fillStyle = shade(pick(R, BOOKS), 0.85 + R() * 0.2); c.fillRect(-lw, -lh, lw, lh); c.restore();
-      cx += lh * Math.sin(la) + h * 0.02; leaned = true;
-    } else if (r < 0.255) {
-      cx += h * (0.05 + R() * 0.12);
-    } else {
-      var bw = h * (0.065 + R() * 0.07), bh = h * (0.66 + R() * 0.28), col = pick(R, BOOKS), f = 0.8 + R() * 0.3;
-      if (cx + bw > left) break;
-      var g = c.createLinearGradient(cx, 0, cx + bw, 0);
-      g.addColorStop(0, shade(col, f * 0.75)); g.addColorStop(0.4, shade(col, f * 1.05)); g.addColorStop(1, shade(col, f * 0.7));
-      c.fillStyle = g; c.fillRect(cx, bottom - bh, bw, bh);
-      if (R() < 0.6) { c.fillStyle = R() < 0.5 ? 'rgba(220,190,120,.55)' : 'rgba(255,245,225,.25)'; c.fillRect(cx, bottom - bh + bh * 0.08, bw, Math.max(1, bh * 0.025)); c.fillRect(cx, bottom - bh * 0.12, bw, Math.max(1, bh * 0.02)); }
-      if (R() < 0.4) { c.fillStyle = 'rgba(255,245,225,.22)'; c.fillRect(cx + bw * 0.3, bottom - bh * 0.7, bw * 0.4, bh * 0.3); }
-      cx += bw + (R() < 0.15 ? 1.5 : 0.4);
-    }
-  }
-  /* Shade the back of the shelf and under the board above. */
-  var sg = c.createLinearGradient(0, y, 0, y + h * 0.45); sg.addColorStop(0, 'rgba(0,0,0,.55)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = sg; c.fillRect(x, y, w, h * 0.45);
-}
-function shelfUnit(c, R, x, y, w, h, side, W, H) {
-  var t = w * 0.07, inner = w - t * 2, cabinetTop = y + h * 0.8;
-  c.fillStyle = OAK_DARK; c.fillRect(x, y, w, h);
-  var bg = c.createLinearGradient(x, 0, x + w, 0);
-  bg.addColorStop(0, 'rgba(0,0,0,' + (side < 0 ? 0.35 : 0.1) + ')'); bg.addColorStop(1, 'rgba(0,0,0,' + (side < 0 ? 0.1 : 0.35) + ')');
-  c.fillStyle = bg; c.fillRect(x, y, w, h); texture(c, x, y, w, h, 0.8);
-  var sh = H * 0.112, by = cabinetTop;
-  while (by - sh > y - sh * 0.5) {
-    var top = by - sh;
-    shelfItems(c, R, x + t, top + t * 0.4, inner, sh - t * 0.4, W);
-    by = top;
-  }
-  by = cabinetTop;
-  while (by > y - sh) {
-    wood(c, R, x, by - t * 0.4, w, t * 0.85, OAK, true);
-    c.fillStyle = 'rgba(255,230,190,.18)'; c.fillRect(x, by - t * 0.4, w, 1.5);
-    dropShadow(c, x + t, by + t * 0.45, inner, t * 1.2, 0.35);
-    by -= sh;
-  }
-  /* Cabinet doors at the bottom. */
-  wood(c, R, x, cabinetTop, w, y + h - cabinetTop, OAK, true);
-  var dw = (w - t * 3) / 2;
-  for (var d = 0; d < 2; d++) {
-    var dx = x + t + d * (dw + t), dy = cabinetTop + t * 1.2, dh = y + h - cabinetTop - t * 2.4;
-    c.strokeStyle = 'rgba(60,30,10,.55)'; c.lineWidth = 2; c.strokeRect(dx, dy, dw, dh);
-    c.strokeStyle = 'rgba(255,225,180,.18)'; c.lineWidth = 1; c.strokeRect(dx + 3, dy + 3, dw - 6, dh - 6);
-    c.fillStyle = '#d9b77e'; c.beginPath(); c.arc(d === 0 ? dx + dw - t * 0.8 : dx + t * 0.8, dy + dh * 0.3, Math.max(2, w * 0.012), 0, 7); c.fill();
-  }
-  vbeam(c, R, x, y, t, h, OAK); vbeam(c, R, x + w - t, y, t, h, OAK);
-  /* Side nearest the fire catches its light. */
-  var lx = side < 0 ? x + w : x;
-  var lg = c.createLinearGradient(lx, 0, side < 0 ? x : x + w, 0);
-  lg.addColorStop(0, 'rgba(255,140,60,.16)'); lg.addColorStop(1, 'rgba(255,140,60,0)');
-  c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = lg; c.fillRect(x, y + h * 0.35, w, h * 0.65); c.restore();
-}
-function framedPrint(c, R, x, y, w, h) {
-  c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(x + w * 0.02, y + h * 0.03, w, h);
-  c.fillStyle = '#2a211a'; c.fillRect(x, y, w, h);
-  var m = w * 0.045; c.fillStyle = '#e6dcc8'; c.fillRect(x + m, y + m, w - m * 2, h - m * 2);
-  var ix = x + m * 2.4, iy = y + m * 2.4, iw = w - m * 4.8, ih = h - m * 4.8;
-  c.save(); c.beginPath(); c.rect(ix, iy, iw, ih); c.clip();
-  var sky = c.createLinearGradient(0, iy, 0, iy + ih); sky.addColorStop(0, '#9fa9a4'); sky.addColorStop(0.55, '#d8cdb2'); sky.addColorStop(1, '#c9b48e');
-  c.fillStyle = sky; c.fillRect(ix, iy, iw, ih);
-  var layers = [['#8f9a86', 0.5], ['#6f7b5e', 0.62], ['#a08a5c', 0.74], ['#5f5a40', 0.86]];
-  for (var l = 0; l < layers.length; l++) {
-    c.fillStyle = layers[l][0]; c.beginPath(); c.moveTo(ix, iy + ih);
-    var ph = R() * 6, amp = ih * (0.04 + R() * 0.06);
-    for (var xx = 0; xx <= iw; xx += iw / 24) c.lineTo(ix + xx, iy + ih * layers[l][1] - Math.sin(xx / iw * 3.2 + ph) * amp - Math.sin(xx / iw * 9 + ph) * amp * 0.3);
-    c.lineTo(ix + iw, iy + ih); c.closePath(); c.fill();
-  }
-  texture(c, ix, iy, iw, ih, 0.6);
-  c.restore();
-  c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; c.strokeRect(ix, iy, iw, ih);
-}
-function rug(c, R, x, y, w, h) {
-  c.fillStyle = '#6f7565'; c.fillRect(x, y, w, h);
-  var b = w * 0.035;
-  c.strokeStyle = '#a7a58c'; c.lineWidth = b * 0.45; c.strokeRect(x + b, y + b, w - b * 2, h + b);
-  c.strokeStyle = '#8a5f4a'; c.lineWidth = b * 0.18; c.strokeRect(x + b * 1.7, y + b * 1.7, w - b * 3.4, h + b);
-  c.fillStyle = 'rgba(190,185,150,.35)';
-  for (var i = 0; i < 9; i++) { var mx = x + w * (0.12 + i * 0.095); c.beginPath(); c.moveTo(mx, y + b * 2.6); c.lineTo(mx + b * 0.9, y + b * 3.6); c.lineTo(mx, y + b * 4.6); c.lineTo(mx - b * 0.9, y + b * 3.6); c.closePath(); c.fill(); }
-  c.fillStyle = 'rgba(160,150,110,.25)'; c.beginPath(); c.ellipse(x + w / 2, y + h * 0.75, w * 0.22, h * 0.45, 0, 0, 7); c.fill();
-  c.strokeStyle = 'rgba(140,90,70,.3)'; c.lineWidth = b * 0.2; c.beginPath(); c.ellipse(x + w / 2, y + h * 0.75, w * 0.16, h * 0.32, 0, 0, 7); c.stroke();
-  texture(c, x, y, w, h, 1.4);
-  var fade = c.createLinearGradient(0, y, 0, y + h); fade.addColorStop(0, 'rgba(0,0,0,.1)'); fade.addColorStop(1, 'rgba(0,0,0,.45)');
-  c.fillStyle = fade; c.fillRect(x, y, w, h);
-}
-function dogBed(c, x, y, w, h) {
-  c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(x + w / 2, y + h * 0.92, w * 0.52, h * 0.16, 0, 0, 7); c.fill();
-  var g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#7b7d80'); g.addColorStop(1, '#3d3f42');
-  c.fillStyle = g; rr(c, x, y, w, h, h * 0.42); c.fill();
-  var g2 = c.createLinearGradient(0, y + h * 0.2, 0, y + h * 0.8); g2.addColorStop(0, '#55575b'); g2.addColorStop(1, '#6a6c70');
-  c.fillStyle = g2; rr(c, x + w * 0.08, y + h * 0.22, w * 0.84, h * 0.5, h * 0.25); c.fill();
-  texture(c, x, y, w, h, 1);
-}
-function sleepingCat(c, w, h) {
-  /* A black cat curled up asleep in a Fair Isle sweater. Drawn on its own layer so it can breathe. */
-  var cx = w * 0.53, cy = h * 0.62, bw = w * 0.38, bh = h * 0.32;
-  c.clearRect(0, 0, w, h);
-  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy + bh * 0.85, bw * 1.05, bh * 0.25, 0, 0, 7); c.fill();
-  var black = '#161312';
-  /* Body. */
-  c.fillStyle = black; c.beginPath(); c.ellipse(cx, cy, bw, bh, 0, 0, 7); c.fill();
-  /* Sweater over the middle of the body. */
-  c.save(); c.beginPath(); c.ellipse(cx, cy, bw * 0.985, bh * 0.97, 0, 0, 7); c.clip();
-  var sx0 = cx - bw * 0.55, sx1 = cx + bw * 0.62;
-  c.beginPath(); c.moveTo(sx0, cy - bh * 1.1); c.bezierCurveTo(sx0 - bw * 0.08, cy, sx0 + bw * 0.04, cy + bh * 0.6, sx0 - bw * 0.02, cy + bh * 1.1);
-  c.lineTo(sx1, cy + bh * 1.1); c.bezierCurveTo(sx1 + bw * 0.06, cy, sx1 - bw * 0.04, cy - bh * 0.5, sx1, cy - bh * 1.1); c.closePath();
-  c.fillStyle = '#e8dfcc'; c.fill(); c.save(); c.clip();
-  var rows = [[-0.62, '#9a2f2a', 'zig'], [-0.36, '#2f3a48', 'dot'], [-0.12, '#9a2f2a', 'diamond'], [0.14, '#6f7b6a', 'dot'], [0.38, '#9a2f2a', 'zig'], [0.62, '#2f3a48', 'dot']];
-  for (var r = 0; r < rows.length; r++) {
-    var ry = cy + bh * rows[r][0], col = rows[r][1], kind = rows[r][2], st = bw * 0.075;
-    c.fillStyle = col; c.strokeStyle = col; c.lineWidth = Math.max(1.2, bh * 0.05);
-    if (kind === 'zig') { c.beginPath(); for (var zx = sx0 - st; zx < sx1 + st; zx += st) { c.lineTo(zx, ry - bh * 0.05); c.lineTo(zx + st / 2, ry + bh * 0.05); } c.stroke(); }
-    else if (kind === 'dot') { for (zx = sx0; zx < sx1; zx += st) { c.fillRect(zx, ry - bh * 0.025, st * 0.35, bh * 0.05); } }
-    else { for (zx = sx0; zx < sx1; zx += st * 1.6) { c.beginPath(); c.moveTo(zx, ry - bh * 0.1); c.lineTo(zx + st * 0.5, ry); c.lineTo(zx, ry + bh * 0.1); c.lineTo(zx - st * 0.5, ry); c.closePath(); c.fill(); } }
-  }
-  for (var kx = sx0; kx < sx1; kx += bw * 0.03) { c.fillStyle = 'rgba(120,100,80,.12)'; c.fillRect(kx, cy - bh, 1, bh * 2); }
-  c.restore();
-  var shadeS = c.createRadialGradient(cx - bw * 0.3, cy - bh * 0.6, bw * 0.1, cx, cy, bw * 1.1);
-  shadeS.addColorStop(0, 'rgba(255,190,120,.10)'); shadeS.addColorStop(0.6, 'rgba(0,0,0,0)'); shadeS.addColorStop(1, 'rgba(0,0,0,.45)');
-  c.fillStyle = shadeS; c.fillRect(cx - bw * 1.2, cy - bh * 1.2, bw * 2.4, bh * 2.4);
-  c.strokeStyle = 'rgba(160,140,115,.7)'; c.lineWidth = Math.max(2, bw * 0.05);
-  c.beginPath(); c.moveTo(sx0 + bw * 0.02, cy - bh * 0.98); c.bezierCurveTo(sx0 - bw * 0.06, cy, sx0 + bw * 0.06, cy + bh * 0.6, sx0, cy + bh * 1.0); c.stroke();
-  c.restore();
-  /* Tail wrapped around the front. */
-  c.strokeStyle = black; c.lineCap = 'round'; c.lineWidth = bh * 0.32;
-  c.beginPath(); c.moveTo(cx + bw * 0.85, cy + bh * 0.35); c.bezierCurveTo(cx + bw * 0.7, cy + bh * 1.05, cx - bw * 0.2, cy + bh * 1.1, cx - bw * 0.62, cy + bh * 0.82); c.stroke();
-  /* Head tucked down at the left, toward the fire. */
-  var hx = cx - bw * 0.78, hy = cy + bh * 0.15, hr = bh * 0.62;
-  c.fillStyle = black;
-  c.beginPath(); c.moveTo(hx - hr * 0.85, hy - hr * 0.35); c.lineTo(hx - hr * 0.72, hy - hr * 1.25); c.lineTo(hx - hr * 0.15, hy - hr * 0.75); c.closePath(); c.fill();
-  c.beginPath(); c.moveTo(hx + hr * 0.15, hy - hr * 0.8); c.lineTo(hx + hr * 0.7, hy - hr * 1.25); c.lineTo(hx + hr * 0.85, hy - hr * 0.3); c.closePath(); c.fill();
-  c.beginPath(); c.ellipse(hx, hy, hr, hr * 0.86, -0.15, 0, 7); c.fill();
-  c.fillStyle = '#3a2a2a';
-  c.beginPath(); c.moveTo(hx - hr * 0.66, hy - hr * 0.5); c.lineTo(hx - hr * 0.62, hy - hr * 1.0); c.lineTo(hx - hr * 0.32, hy - hr * 0.7); c.closePath(); c.fill();
-  c.beginPath(); c.moveTo(hx + hr * 0.3, hy - hr * 0.75); c.lineTo(hx + hr * 0.62, hy - hr * 1.02); c.lineTo(hx + hr * 0.68, hy - hr * 0.48); c.closePath(); c.fill();
-  /* Paws tucked under the chin. */
-  c.fillStyle = black; c.beginPath(); c.ellipse(hx + hr * 0.15, hy + hr * 0.78, hr * 0.55, hr * 0.26, 0.1, 0, 7); c.fill();
-  /* Firelight on the edges facing the hearth. */
-  c.strokeStyle = 'rgba(255,150,70,.45)'; c.lineWidth = Math.max(1.5, hr * 0.06);
-  c.beginPath(); c.ellipse(hx, hy, hr * 0.98, hr * 0.84, -0.15, Math.PI * 0.85, Math.PI * 1.45); c.stroke();
-  c.beginPath(); c.ellipse(cx, cy, bw * 0.99, bh * 0.99, 0, Math.PI * 1.15, Math.PI * 1.45); c.stroke();
-  /* Closed eyes and a pink nose. */
-  c.strokeStyle = 'rgba(120,110,100,.75)'; c.lineWidth = Math.max(1.2, hr * 0.05);
-  c.beginPath(); c.arc(hx - hr * 0.38, hy - hr * 0.02, hr * 0.17, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
-  c.beginPath(); c.arc(hx + hr * 0.25, hy - hr * 0.08, hr * 0.17, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
-  c.fillStyle = '#6e4a48'; c.beginPath(); c.moveTo(hx - hr * 0.12, hy + hr * 0.2); c.lineTo(hx + hr * 0.02, hy + hr * 0.2); c.lineTo(hx - hr * 0.05, hy + hr * 0.3); c.closePath(); c.fill();
-  c.strokeStyle = 'rgba(200,190,175,.35)'; c.lineWidth = 1;
-  for (var wsk = 0; wsk < 3; wsk++) { c.beginPath(); c.moveTo(hx - hr * 0.2, hy + hr * 0.3); c.lineTo(hx - hr * 1.2, hy + hr * (0.1 + wsk * 0.15)); c.stroke(); }
-}
-function libraryScene(withCat) {
-  return {
-    name: withCat ? 'The library, with the cat' : 'The library',
-    open: { x: 0.32, y: 0.575, w: 0.36, h: 0.27 },
-    fire: { base: 0.17, h: 0.74, bed: 0.74, lobes: 3.6, blue: 0.0, sparks: 0.9, speed: 1.0 },
-    light: [50, 75, 75],
-    cat: withCat ? { x: 0.52, y: 0.845, w: 0.42, h: 0.13 } : null,
-    draw: function (b, f, g, W, H, R) {
-      var O = px(this.open, W, H), cx = O.x + O.w / 2, rise = H * 0.045;
-      firebox(b, R, O, { back: ['#3a2a20', '#33251c', '#402e22', '#2d2119'] });
-      f.save(); f.beginPath(); f.rect(0, 0, W, H); archPath(f, O, rise); f.clip('evenodd');
-      plaster(f, R, 0, 0, W, H, '#8d7a62');
-      /* Limestone surround. */
-      var sx = W * 0.245, sw = W * 0.51, sy = H * 0.47, floorY = H * 0.865;
-      var sg = f.createLinearGradient(0, sy, 0, floorY); sg.addColorStop(0, '#b9aa8f'); sg.addColorStop(1, '#a8987d');
-      f.fillStyle = sg; f.fillRect(sx, sy, sw, floorY - sy); texture(f, sx, sy, sw, floorY - sy, 1.2);
-      f.strokeStyle = 'rgba(70,55,40,.28)'; f.lineWidth = 2;
-      f.strokeRect(sx + W * 0.025, sy + H * 0.02, sw - W * 0.05, floorY - sy - H * 0.02);
-      f.strokeStyle = 'rgba(255,240,215,.15)'; f.lineWidth = 1.5; f.strokeRect(sx + W * 0.025 + 2, sy + H * 0.02 + 2, sw - W * 0.05, floorY - sy - H * 0.02);
-      for (var j = 0; j < 9; j++) { f.fillStyle = 'rgba(80,65,50,' + (0.08 + R() * 0.06) + ')'; f.fillRect(sx + R() * sw, sy + R() * (floorY - sy), 1, H * 0.003); }
-      /* Keystone over the arch. */
-      f.fillStyle = '#c3b499'; f.beginPath(); f.moveTo(cx - W * 0.03, O.y - H * 0.012); f.lineTo(cx + W * 0.03, O.y - H * 0.012); f.lineTo(cx + W * 0.022, O.y + H * 0.02); f.lineTo(cx - W * 0.022, O.y + H * 0.02); f.closePath(); f.fill();
-      f.strokeStyle = 'rgba(70,55,40,.3)'; f.stroke();
-      warmLight(f, cx, O.y + O.h * 0.75, W * 0.7, 0.3);
-      /* Shelves on both sides. */
-      shelfUnit(f, R, 0, -H * 0.02, W * 0.215, floorY + H * 0.02, -1, W, H);
-      shelfUnit(f, R, W * 0.785, -H * 0.02, W * 0.215, floorY + H * 0.02, 1, W, H);
-      f.restore();
-      /* Soot shadow at the top of the opening. */
-      f.save(); f.beginPath(); archPath(f, O, rise); f.lineWidth = W * 0.012; f.strokeStyle = 'rgba(20,12,8,.5)'; f.stroke(); f.restore();
-      /* Picture over the mantel. */
-      framedPrint(f, R, W * 0.35, H * 0.255, W * 0.3, H * 0.15);
-      /* Oak mantel. */
-      var my = H * 0.447, mh = H * 0.024;
-      dropShadow(f, W * 0.23, my + mh, W * 0.54, H * 0.022, 0.5);
-      wood(f, R, W * 0.235, my + mh * 0.85, W * 0.53, mh * 0.45, OAK, true);
-      wood(f, R, W * 0.222, my, W * 0.556, mh, OAK, true);
-      f.fillStyle = 'rgba(255,230,190,.22)'; f.fillRect(W * 0.222, my, W * 0.556, 1.5);
-      /* Pothos on the mantel, trailing over the edge. */
-      pot(f, W * 0.285, my + 1, W * 0.07, H * 0.034, '#e9e3d7');
-      vine(f, R, W * 0.27, my + mh * 0.5, H * 0.13, W * 0.032, -0.3);
-      vine(f, R, W * 0.295, my + mh * 0.5, H * 0.08, W * 0.03, 0.2);
-      vine(f, R, W * 0.26, my - H * 0.01, H * 0.05, W * 0.028, -0.8);
-      for (var lf = 0; lf < 9; lf++) leaf(f, W * 0.285 + (R() - 0.5) * W * 0.07, my - H * 0.03 - R() * H * 0.015, W * 0.03, (R() - 0.5) * 2.2, pick(R, ['#5e8a36', '#6f9a3f', '#4f7a2e', '#86a94a']));
-      /* Books and candles on the right end. */
-      var bsy = my, bks = [['#2f3c4f', 0.1], ['#d8cdb4', 0.09], ['#8a4a32', 0.095]];
-      for (var bi = 0; bi < bks.length; bi++) { var th = H * 0.009; f.fillStyle = bks[bi][0]; f.fillRect(W * (0.64 - bks[bi][1] / 2), bsy - th, W * bks[bi][1], th); f.fillStyle = 'rgba(255,240,210,.15)'; f.fillRect(W * (0.64 - bks[bi][1] / 2), bsy - th, W * bks[bi][1], 1); bsy -= th; }
-      this.flames = [candle(f, W * 0.64, bsy + 1, W * 0.05, H * 0.038, '#efe5d3'), candle(f, W * 0.725, my + 1, W * 0.045, H * 0.06, '#efe5d3')];
-      /* A vine trailing off the top of the left shelves. */
-      vine(f, R, W * 0.12, H * 0.065, H * 0.2, W * 0.03, 0.1);
-      /* Hearth, floor and rug. */
-      stoneSlab(f, R, W * 0.23, floorY - H * 0.022, W * 0.54, H * 0.026);
-      wood(f, R, 0, floorY + H * 0.004, W, H - floorY, '#6e4c2e', true);
-      f.strokeStyle = 'rgba(30,18,10,.35)'; f.lineWidth = 1.5;
-      for (var fl = 1; fl < 5; fl++) { var fy = floorY + (H - floorY) * fl / 5; f.beginPath(); f.moveTo(0, fy); f.lineTo(W, fy); f.stroke(); }
-      dropShadow(f, 0, floorY + H * 0.004, W, H * 0.025, 0.55);
-      rug(f, R, W * 0.05, H * 0.9, W * 0.9, H * 0.12);
-      warmLight(f, cx, floorY, W * 0.7, 0.22);
-      if (this.cat) dogBed(f, W * this.cat.x + W * this.cat.w * 0.05, H * (this.cat.y + this.cat.h * 0.55), W * this.cat.w * 0.9, H * this.cat.h * 0.42);
-      vignette(f, W, H, 0.55, 0.45);
-      logPile(f, g, R, cx, O.y + O.h * 0.885, O.w * 0.74);
-    },
-    drawCat: function (c, w, h) { sleepingCat(c, w, h); }
-  };
-}
-SCENES.unshift(libraryScene(true), libraryScene(false));
-
-function px(o, W, H) { return { x: o.x * W, y: o.y * H, w: o.w * W, h: o.h * H }; }
-function archPath(c, O, rise) {
-  var cx = O.x + O.w / 2, sy = O.y + rise;
-  c.moveTo(O.x, O.y + O.h); c.lineTo(O.x, sy);
-  c.ellipse(cx, sy, O.w / 2, rise, 0, Math.PI, 0, false);
-  c.lineTo(O.x + O.w, O.y + O.h); c.closePath();
-}
-function stoneSlab(c, R, x, y, w, h) {
-  var tg = c.createLinearGradient(0, y, 0, y + h);
-  tg.addColorStop(0, '#8b8075'); tg.addColorStop(0.18, '#6f665d'); tg.addColorStop(0.2, '#4c453f'); tg.addColorStop(1, '#2a2521');
-  c.fillStyle = tg; c.fillRect(x, y, w, h);
-  texture(c, x, y, w, h, 1.2);
-  c.fillStyle = 'rgba(0,0,0,.35)';
-  for (var i = 1; i < 4; i++) c.fillRect(x + w * i / 4 + (R() - 0.5) * w * 0.05, y + h * 0.2, 2, h * 0.8);
-}
-
-/* ---------- Layout ---------- */
-var stage = document.getElementById('stage'), frame = document.getElementById('frame');
-var backC = document.getElementById('back'), frontC = document.getElementById('front'), glowC = document.getElementById('glow'), fxC = document.getElementById('fx'), fireC = document.getElementById('fire');
-var lightEl = document.getElementById('light'), dimEl = document.getElementById('dim'), fadeEl = document.getElementById('fade');
-var FW = 0, FH = 0, SCALE = 1, scene = null;
-
-function layout() {
-  stage.classList.remove('turn-left', 'turn-right');
-  if (state.rotate === 'left') stage.classList.add('turn-left');
-  if (state.rotate === 'right') stage.classList.add('turn-right');
-  var vv = window.visualViewport, W = Math.round(vv ? vv.width : window.innerWidth), H = Math.round(vv ? vv.height : window.innerHeight);
-  var turned = state.rotate === 'left' || state.rotate === 'right', sw = turned ? H : W, sh = turned ? W : H;
-  stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
-  /* Always a tall 9:16 picture; on a wide screen it sits in the middle. */
-  var fw = sw, fh = sh;
-  if (sw / sh > 0.5625) fw = Math.round(sh * 0.5625); else fh = Math.round(sw / 0.5625);
-  frame.style.width = fw + 'px'; frame.style.height = fh + 'px'; frame.style.top = Math.round((sh - fh) / 2) + 'px'; frame.style.bottom = 'auto';
-  if (fw !== FW || fh !== FH) { FW = fw; FH = fh; drawScene(); }
-}
-function sizeCanvas(cv, w, h, s) { cv.width = Math.round(w * s); cv.height = Math.round(h * s); var c = cv.getContext('2d'); c.setTransform(s, 0, 0, s, 0, 0); c.clearRect(0, 0, w, h); return c; }
-
-function drawScene() {
-  if (!FW) return;
-  scene = SCENES[state.scene % SCENES.length];
-  var dpr = window.devicePixelRatio || 1, s = Math.min(dpr, 2);
-  if (FW * s > 1100) s = 1100 / FW;
-  SCALE = s;
-  var b = sizeCanvas(backC, FW, FH, s), f = sizeCanvas(frontC, FW, FH, s), g = sizeCanvas(glowC, FW, FH, s);
-  sizeCanvas(fxC, FW, FH, s);
-  b.fillStyle = '#000'; b.fillRect(0, 0, FW, FH);
-  scene.flames = [];
-  scene.draw(b, f, g, FW, FH, rng(1000 + state.scene * 77));
-  var L = scene.light;
-  lightEl.style.background = 'radial-gradient(ellipse ' + L[2] + '% ' + (L[2] * 0.62) + '% at ' + L[0] + '% ' + L[1] + '%, rgba(255,140,60,.20), rgba(255,120,40,.07) 50%, rgba(255,100,30,0) 100%)';
-  if (scene.open) {
-    var O = px(scene.open, FW, FH);
-    fireC.style.display = 'block';
-    fireC.style.left = O.x + 'px'; fireC.style.top = O.y + 'px'; fireC.style.width = O.w + 'px'; fireC.style.height = O.h + 'px';
-    var q = Math.min(0.42 * SCALE, 420 / Math.max(O.w, 1));
-    if (!gl) q *= 0.5;
-    fireC.width = Math.max(48, Math.round(O.w * q)); fireC.height = Math.max(48, Math.round(O.h * q)); fb = null;
-    if (gl) gl.viewport(0, 0, fireC.width, fireC.height);
-  } else fireC.style.display = 'none';
-  var catC = document.getElementById('cat');
-  if (scene.cat) {
-    var C = px(scene.cat, FW, FH);
-    catC.style.display = 'block'; catC.style.left = C.x + 'px'; catC.style.top = C.y + 'px'; catC.style.width = C.w + 'px'; catC.style.height = C.h + 'px';
-    scene.drawCat(sizeCanvas(catC, C.w, C.h, s), C.w, C.h);
-  } else catC.style.display = 'none';
-  dimEl.style.opacity = DIMS[state.dim].a;
-}
-
-/* ---------- The fire itself: a small shader, scaled up so it stays soft ---------- */
-var gl = null, prog = null, U = {};
-var VS = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
-var FS = [
-  '#ifdef GL_FRAGMENT_PRECISION_HIGH', 'precision highp float;', '#else', 'precision mediump float;', '#endif',
-  'uniform vec2 uRes; uniform float uT, uBase, uH, uBed, uLobes, uBlue, uSparks, uSpeed;',
-  'float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }',
-  'float noise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);',
-  '  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y); }',
-  'float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; } return v; }',
-  'vec3 ramp(float v){',
-  '  vec3 c = mix(vec3(0.18, 0.015, 0.0), vec3(0.92, 0.20, 0.02), smoothstep(0.0, 0.32, v));',
-  '  c = mix(c, vec3(1.0, 0.56, 0.10), smoothstep(0.3, 0.7, v));',
-  '  c = mix(c, vec3(1.0, 0.86, 0.52), smoothstep(0.72, 1.0, v));',
-  '  return c; }',
-  'void main(){',
-  '  vec2 uv = gl_FragCoord.xy / uRes;',
-  '  float asp = uRes.x / uRes.y;',
-  '  float t = uT * uSpeed;',
-  '  float x = (uv.x - 0.5) / (uBed * 0.5);',
-  '  float y = (uv.y - uBase) / uH;',
-  '  vec2 s = vec2(x * 1.35 * uBed * asp * 2.2, y * 1.9);',
-  '  float n1 = fbm(s + vec2(0.0, -t * 1.25));',
-  '  float n2 = fbm(s * vec2(2.2, 1.6) + vec2(5.3, -t * 2.1) + n1 * 1.1);',
-  '  float n3 = fbm(vec2(x * 1.6 * uBed * asp * 2.2 + 7.1, t * 0.55));',
-  '  float xw = x + (n1 - 0.5) * 0.6 * clamp(y, 0.0, 1.5);',
-  '  float prof = 1.0 - smoothstep(0.45, 1.0, abs(xw));',
-  '  float lob = 0.5 + 0.5 * cos(xw * 3.14159 * uLobes * 0.5 + n3 * 5.0);',
-  '  float lob2 = 0.5 + 0.5 * cos(xw * 3.14159 * uLobes * 1.1 + n1 * 4.0 + 1.3);',
-  '  float hgt = prof * (0.25 + 0.5 * lob + 0.25 * lob2) * (0.6 + 0.75 * n3);',
-  '  float v = (hgt - y) * 1.55 + (n2 - 0.5) * 2.1 * clamp(y * 1.3 + 0.3, 0.0, 1.4);',
-  '  v *= smoothstep(-0.05, 0.06, y);',
-  '  v = clamp(v, 0.0, 1.0);',
-  '  vec3 col = ramp(v);',
-  '  col = mix(col, vec3(0.25, 0.4, 1.0), uBlue * (1.0 - smoothstep(0.0, 0.1, y)) * smoothstep(0.15, 0.5, v) * 0.75);',
-  '  float a = smoothstep(0.0, 0.4, v);',
-  '  vec4 o = vec4(col * a, a);',
-  /* Glowing bed of embers along the base. */
-  '  float bed = (1.0 - smoothstep(0.0, 0.09, abs(y + 0.01))) * (1.0 - smoothstep(0.7, 1.02, abs(x)));',
-  '  float en = fbm(vec2(x * 5.0 * uBed * asp * 2.0, t * 0.25));',
-  '  bed *= 0.35 + 0.9 * en;',
-  '  o.rgb += vec3(1.0, 0.36, 0.05) * bed * (1.0 - a) * 0.9; o.a = max(o.a, bed * 0.85);',
-  /* Sparks that drift up out of the fire. */
-  '  if (uSparks > 0.0) {',
-  '    vec2 g = vec2(uv.x * asp * 16.0, uv.y * 16.0 - t * 1.6);',
-  '    vec2 id = floor(g); vec2 f = fract(g) - 0.5;',
-  '    float h = hash(id + 3.7);',
-  '    if (h > 1.0 - 0.035 * uSparks) {',
-  '      vec2 c = vec2(hash(id + 1.3) - 0.5, hash(id + 8.1) - 0.5) * 0.6 + vec2(sin(t * 2.0 + h * 40.0) * 0.12, 0.0);',
-  '      float d = length((f - c) * vec2(1.0, 0.7));',
-  '      float sp = smoothstep(0.09, 0.0, d) * (1.0 - smoothstep(0.2, 1.25, y)) * smoothstep(0.1, 0.35, y) * step(abs(x), 0.95);',
-  '      sp *= 0.5 + 0.5 * sin(t * 6.0 + h * 90.0);',
-  '      o.rgb += vec3(1.0, 0.6, 0.2) * sp; o.a = max(o.a, sp);',
-  '    }',
-  '  }',
-  '  gl_FragColor = o;',
-  '}'
-].join('\n');
-function initGL() {
-  try {
-    gl = fireC.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }) || fireC.getContext('experimental-webgl');
-  } catch (e) { gl = null; }
-  if (!gl) return;
-  function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { throw new Error(gl.getShaderInfoLog(s)); } return s; }
-  try {
-    prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
-  } catch (e) { if (window.console) console.warn('fire shader', e); gl = null; return; }
-  gl.useProgram(prog);
-  var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-  var loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  ['uRes', 'uT', 'uBase', 'uH', 'uBed', 'uLobes', 'uBlue', 'uSparks', 'uSpeed'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
-}
-/* Without WebGL: the same fire worked out on the processor, at a lower resolution. */
-var fb = null;
-function fhash(x, y) { x = x * 123.34; x -= Math.floor(x); y = y * 456.21; y -= Math.floor(y); var d = x * (x + 45.32) + y * (y + 45.32); x += d; y += d; var p = x * y; return p - Math.floor(p); }
-function fnoise(x, y) {
-  var ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
-  var a = fhash(ix, iy), b = fhash(ix + 1, iy), c = fhash(ix, iy + 1), d = fhash(ix + 1, iy + 1);
-  return (a + (b - a) * ux) * (1 - uy) + (c + (d - c) * ux) * uy;
-}
-function ffbm(x, y, oct) { var v = 0, a = 0.5; for (var i = 0; i < oct; i++) { v += a * fnoise(x, y); x = x * 2.03 + 1.7; y = y * 2.03 + 9.2; a *= 0.5; } return v; }
-function sstep(e0, e1, x) { var q = (x - e0) / (e1 - e0); q = q < 0 ? 0 : q > 1 ? 1 : q; return q * q * (3 - 2 * q); }
-function drawFallbackFire(t, F, size) {
-  var w = fireC.width, h = fireC.height;
-  if (!fb || fb.w !== w || fb.h !== h) { var cx = fireC.getContext('2d'); fb = { c: cx, w: w, h: h, img: cx.createImageData(w, h) }; }
-  var d = fb.img.data, asp = w / h, H = F.h * size; t *= F.speed;
-  for (var j = 0; j < h; j++) {
-    var uy = 1 - (j + 0.5) / h, y = (uy - F.base) / H, row = j * w * 4;
-    for (var i = 0; i < w; i++) {
-      var o = row + i * 4, x = ((i + 0.5) / w - 0.5) / (F.bed * 0.5);
-      if (y > 1.6 || y < -0.15 || Math.abs(x) > 1.15) { d[o + 3] = 0; continue; }
-      var sx = x * 1.35 * F.bed * asp * 2.2, sy = y * 1.9;
-      var n1 = ffbm(sx, sy - t * 1.25, 4), n2 = ffbm(sx * 2.2 + 5.3 + n1 * 1.1, sy * 1.6 - t * 2.1 + n1 * 1.1, 3), n3 = ffbm(x * 1.6 * F.bed * asp * 2.2 + 7.1, t * 0.55, 3);
-      var xw = x + (n1 - 0.5) * 0.6 * Math.max(0, Math.min(1.5, y));
-      var prof = 1 - sstep(0.45, 1, Math.abs(xw));
-      var hgt = prof * (0.25 + 0.5 * (0.5 + 0.5 * Math.cos(xw * Math.PI * F.lobes * 0.5 + n3 * 5)) + 0.25 * (0.5 + 0.5 * Math.cos(xw * Math.PI * F.lobes * 1.1 + n1 * 4 + 1.3))) * (0.6 + 0.75 * n3);
-      var v = (hgt - y) * 1.55 + (n2 - 0.5) * 2.1 * Math.max(0, Math.min(1.4, y * 1.3 + 0.3));
-      v *= sstep(-0.05, 0.06, y); v = v < 0 ? 0 : v > 1 ? 1 : v;
-      var k1 = sstep(0, 0.32, v), k2 = sstep(0.3, 0.7, v), k3 = sstep(0.72, 1, v);
-      var r = 0.18 + 0.74 * k1, g = 0.015 + 0.185 * k1, b = 0.02 * k1;
-      r += (1 - r) * k2; g += (0.56 - g) * k2; b += (0.1 - b) * k2;
-      g += (0.86 - g) * k3; b += (0.52 - b) * k3;
-      var a = sstep(0, 0.4, v);
-      var bed = (1 - sstep(0, 0.09, Math.abs(y + 0.01))) * (1 - sstep(0.7, 1.02, Math.abs(x)));
-      if (bed > 0) bed *= 0.35 + 0.9 * fnoise(x * 5 * F.bed * asp, t * 0.25);
-      var A = Math.max(a, bed * 0.85);
-      if (A <= 0.003) { d[o + 3] = 0; continue; }
-      var e = bed * (1 - a) * 0.9;
-      d[o] = Math.min(255, (r * a + e) / A * 255); d[o + 1] = Math.min(255, (g * a + 0.36 * e) / A * 255); d[o + 2] = Math.min(255, (b * a + 0.05 * e) / A * 255); d[o + 3] = A * 255;
-    }
-  }
-  fb.c.putImageData(fb.img, 0, 0);
-}
-
-/* ---------- Candle flames ---------- */
-var fxCtx = null;
-function drawFlames(t) {
-  var c = fxC.getContext('2d');
-  c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  var fl = scene.flames || [];
-  for (var i = 0; i < fl.length; i++) if (fl[i].lastBox) c.clearRect(fl[i].lastBox[0], fl[i].lastBox[1], fl[i].lastBox[2], fl[i].lastBox[3]);
-  for (i = 0; i < fl.length; i++) {
-    var F = fl[i], h = F.s * 1.9, R2 = h * 3.2;
-    var ph = i * 1.7;
-    var gust = Math.sin(t * 0.7 + ph) * Math.sin(t * 0.23 + ph * 2);
-    var k = 1 + 0.07 * Math.sin(t * 7.1 + ph) + 0.05 * Math.sin(t * 12.7 + ph * 3) + 0.06 * gust;
-    var sway = (Math.sin(t * 1.3 + ph) * 0.05 + Math.sin(t * 3.7 + ph * 2) * 0.025 + gust * 0.05) * h;
-    var x = F.x, y = F.y, hh = h * k, w = F.s * 0.5;
-    var halo = c.createRadialGradient(x, y - hh * 0.4, 0, x, y - hh * 0.4, R2);
-    halo.addColorStop(0, 'rgba(255,175,95,' + (0.22 * k) + ')'); halo.addColorStop(0.35, 'rgba(255,150,70,.07)'); halo.addColorStop(1, 'rgba(255,140,60,0)');
-    c.fillStyle = halo; c.fillRect(x - R2, y - hh * 0.4 - R2, R2 * 2, R2 * 2);
-    var tx = x + sway, ty = y - hh;
-    c.beginPath(); c.moveTo(tx, ty);
-    c.bezierCurveTo(x + w * 0.55 + sway * 0.5, y - hh * 0.5, x + w * 0.6, y + w * 0.1, x, y + w * 0.3);
-    c.bezierCurveTo(x - w * 0.6, y + w * 0.1, x - w * 0.55 + sway * 0.5, y - hh * 0.5, tx, ty);
-    var fg = c.createRadialGradient(x + sway * 0.25, y - hh * 0.22, 0, x + sway * 0.25, y - hh * 0.3, hh * 0.75);
-    fg.addColorStop(0, 'rgba(255,252,235,1)'); fg.addColorStop(0.3, 'rgba(255,232,170,.98)'); fg.addColorStop(0.62, 'rgba(255,160,60,.85)'); fg.addColorStop(1, 'rgba(230,90,20,0)');
-    c.fillStyle = fg; c.fill();
-    var bg = c.createRadialGradient(x, y + w * 0.1, 0, x, y + w * 0.1, w * 0.45);
-    bg.addColorStop(0, 'rgba(90,120,255,.55)'); bg.addColorStop(1, 'rgba(90,120,255,0)');
-    c.fillStyle = bg; c.fillRect(x - w, y - w * 0.4, w * 2, w);
-    F.lastBox = [x - R2 - 2, y - hh * 0.4 - R2 - 2, R2 * 2 + 4, R2 * 2 + 4];
-  }
-}
-
-/* ---------- Animation ---------- */
-var t0 = Date.now(), lastFrame = 0, flick = 0, flickTarget = 0, nextFlick = 0;
-function frameLoop() {
-  requestAnimationFrame(frameLoop);
-  var now = Date.now();
-  if (now - lastFrame < 31) return;   /* about 30 frames a second: smooth enough for fire, gentle on the TV */
-  lastFrame = now;
-  var t = ((now - t0) / 1000) % 3600, size = SIZES[state.size];
-  if (scene && scene.open) {
-    var F = scene.fire;
-    if (gl) {
-      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.uniform2f(U.uRes, fireC.width, fireC.height); gl.uniform1f(U.uT, t);
-      gl.uniform1f(U.uBase, F.base); gl.uniform1f(U.uH, F.h * size.h); gl.uniform1f(U.uBed, F.bed);
-      gl.uniform1f(U.uLobes, F.lobes); gl.uniform1f(U.uBlue, F.blue); gl.uniform1f(U.uSparks, F.sparks * size.crackle); gl.uniform1f(U.uSpeed, F.speed);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    } else drawFallbackFire(t, F, size.h);
-  }
-  if (scene && scene.flames && scene.flames.length) drawFlames(t);
-  /* Firelight on the room: a wandering flicker. */
-  if (now > nextFlick) { flickTarget = Math.random(); nextFlick = now + 60 + Math.random() * 220; }
-  flick += (flickTarget - flick) * 0.25;
-  var base = scene && scene.open ? 0.62 : 0.72;
-  lightEl.style.opacity = Math.min(1, (base + flick * 0.38) * size.glow).toFixed(3);
-  glowC.style.opacity = (0.62 + flick * 0.3 + 0.08 * Math.sin(t * 0.9)).toFixed(3);
-}
-
-/* ---------- Sound: crackle and music, all made in the browser ---------- */
-var AC = null, master, fireBus, musicBus, verbIn, crackleTimer = null, musicTimer = null, roarGain = null, paused = false;
+/* ---------- Sound: a real recorded crackle, looped with a soft overlap ---------- */
+var AC = null, crackleBuf = null, crackleGain = null, crackleTimer = null, nextAt = 0, paused = false, musicEl = null;
 function initAudio() {
-  if (AC) { if (AC.state === 'suspended' && AC.resume) AC.resume(); return; }
-  var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
-  AC = new Ctx();
-  var comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.knee.value = 12; comp.connect(AC.destination);
-  master = AC.createGain(); master.gain.value = paused ? 0 : 0.9; master.connect(comp);
-  fireBus = AC.createGain(); fireBus.gain.value = state.crackle ? 1 : 0; fireBus.connect(master);
-  musicBus = AC.createGain(); musicBus.gain.value = 0.75; musicBus.connect(master);
-  var verb = AC.createConvolver(); verb.buffer = impulse(3.2, 2.6); verbIn = AC.createGain(); verbIn.gain.value = 1;
-  var verbOut = AC.createGain(); verbOut.gain.value = 0.55; verbIn.connect(verb); verb.connect(verbOut); verbOut.connect(musicBus);
-  makeCrackles(); startFireSound(); setMusic(state.music, true);
-}
-function impulse(sec, decay) {
-  var n = Math.round(AC.sampleRate * sec), b = AC.createBuffer(2, n, AC.sampleRate);
-  for (var ch = 0; ch < 2; ch++) { var d = b.getChannelData(ch); for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay); }
-  return b;
-}
-function noiseBuffer(sec, brown) {
-  var n = Math.round(AC.sampleRate * sec), b = AC.createBuffer(2, n, AC.sampleRate);
-  for (var ch = 0; ch < 2; ch++) { var d = b.getChannelData(ch), last = 0; for (var i = 0; i < n; i++) { var w = Math.random() * 2 - 1; if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w; } }
-  return b;
-}
-var crackleBufs = [];
-function makeCrackles() {
-  for (var i = 0; i < 28; i++) {
-    var ms = i < 18 ? 2 + Math.random() * 6 : 12 + Math.random() * 30, n = Math.round(AC.sampleRate * ms / 1000), b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
-    var dec = n * (0.12 + Math.random() * 0.25), lp = 0, smooth = i < 18 ? 0.9 : 0.35;
-    for (var j = 0; j < n; j++) { var w = Math.random() * 2 - 1; lp = lp + smooth * (w - lp); d[j] = lp * Math.exp(-j / dec); }
-    crackleBufs.push(b);
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+  if (AC && CRACKLE) {
+    crackleGain = AC.createGain(); crackleGain.gain.value = 0; crackleGain.connect(AC.destination);
+    fetch(CRACKLE).then(function (r) { return r.arrayBuffer(); }).then(function (b) {
+      return new Promise(function (ok, no) { AC.decodeAudioData(b, ok, no); });
+    }).then(function (buf) { crackleBuf = buf; nextAt = AC.currentTime + .1; schedule(); setSound(); })
+      .catch(function () { toast('The crackle did not load'); });
   }
+  if (MUSIC) { musicEl = new Audio(MUSIC); musicEl.loop = true; musicEl.volume = .5; }
+  setSound();
 }
-function startFireSound() {
-  var src = AC.createBufferSource(); src.buffer = noiseBuffer(7, true); src.loop = true;
-  var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
-  roarGain = AC.createGain(); roarGain.gain.value = 0.32;
-  var lfo = AC.createOscillator(), lfoG = AC.createGain(); lfo.frequency.value = 0.09; lfoG.gain.value = 0.09; lfo.connect(lfoG); lfoG.connect(roarGain.gain); lfo.start();
-  src.connect(lp); lp.connect(roarGain); roarGain.connect(fireBus); src.start();
-  var hs = AC.createBufferSource(); hs.buffer = noiseBuffer(5, false); hs.loop = true;
-  var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.6;
-  var hg = AC.createGain(); hg.gain.value = 0.012; hs.connect(bp); bp.connect(hg); hg.connect(fireBus); hs.start();
-  var next = AC.currentTime + 0.1;
-  crackleTimer = setInterval(function () {
-    if (!state.crackle || paused) { next = AC.currentTime + 0.1; return; }
-    var dens = SIZES[state.size].crackle;
-    while (next < AC.currentTime + 0.3) {
-      var r = Math.random();
-      if (r < 0.74) tick(next, 0.05 + Math.random() * 0.2, false);
-      else if (r < 0.93) { var k = 2 + Math.floor(Math.random() * 5), tt = next; for (var i = 0; i < k; i++) { tick(tt, 0.06 + Math.random() * 0.25, false); tt += 0.006 + Math.random() * 0.04; } }
-      else if (r < 0.995) tick(next, 0.3 + Math.random() * 0.4, true);
-      else { tt = next; for (i = 0; i < 9; i++) { tick(tt, 0.2 + Math.random() * 0.5, i % 3 === 0); tt += 0.01 + Math.random() * 0.06; } }
-      next += -Math.log(1 - Math.random()) * 0.13 / dens;
-    }
-  }, 80);
+function schedule() {
+  if (!crackleBuf) return;
+  var X = Math.min(1.5, crackleBuf.duration / 4);
+  while (nextAt < AC.currentTime + 4) {
+    var src = AC.createBufferSource(), g = AC.createGain();
+    src.buffer = crackleBuf; src.connect(g); g.connect(crackleGain);
+    var t = nextAt, end = t + crackleBuf.duration;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + X);
+    g.gain.setValueAtTime(1, end - X); g.gain.linearRampToValueAtTime(0, end);
+    src.start(t); src.stop(end + .05);
+    nextAt = end - X;
+  }
+  clearTimeout(crackleTimer); crackleTimer = setTimeout(schedule, 1000);
 }
-function tick(t, vol, pop) {
-  var s = AC.createBufferSource(); s.buffer = crackleBufs[pop ? 18 + Math.floor(Math.random() * 10) : Math.floor(Math.random() * 18)];
-  var f = AC.createBiquadFilter(); f.type = pop ? 'bandpass' : 'highpass'; f.frequency.value = pop ? 500 + Math.random() * 900 : 900 + Math.random() * 2600; f.Q.value = pop ? 0.9 : 0.5;
-  var g = AC.createGain(); g.gain.value = vol * (pop ? 1.1 : 0.7);
-  s.connect(f); f.connect(g);
-  if (AC.createStereoPanner) { var p = AC.createStereoPanner(); p.pan.value = (Math.random() - 0.5) * 0.9; g.connect(p); p.connect(fireBus); } else g.connect(fireBus);
-  s.start(t);
+function setSound() {
+  if (crackleGain) {
+    var on = state.crackle && !paused ? .9 : 0;
+    crackleGain.gain.cancelScheduledValues(AC.currentTime);
+    crackleGain.gain.setTargetAtTime(on, AC.currentTime, .4);
+  }
+  if (musicEl) { if (state.music && !paused) playSafe(musicEl); else musicEl.pause(); }
 }
 
-/* Music. Three gentle generators, plus one public-domain carol on the music box. */
-function mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-var waves = {};
-function wave(name, real) {
-  if (waves[name]) return waves[name];
-  var imag = new Float32Array(real.length), re = new Float32Array(real.length); for (var i = 0; i < real.length; i++) re[i] = 0;
-  for (i = 0; i < real.length; i++) imag[i] = real[i];
-  return (waves[name] = AC.createPeriodicWave(re, imag));
-}
-function voiceOut(g, wet) { g.connect(musicBus); var s = AC.createGain(); s.gain.value = wet; g.connect(s); s.connect(verbIn); }
-function piano(t, m, vel) {
-  var o = AC.createOscillator(); o.setPeriodicWave(wave('piano', [0, 1, 0.42, 0.16, 0.08, 0.035, 0.015]));
-  o.frequency.value = mtof(m); o.detune.value = (Math.random() - 0.5) * 4;
-  var f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(3200, t); f.frequency.exponentialRampToValueAtTime(900, t + 1.2);
-  var g = AC.createGain(), dur = 2.2 + (84 - m) * 0.06;
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vel, t + 0.008); g.gain.exponentialRampToValueAtTime(vel * 0.32, t + 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(f); f.connect(g); voiceOut(g, 0.5); o.start(t); o.stop(t + dur + 0.1);
-}
-function musicbox(t, m, vel) {
-  var dur = 2.2, g = AC.createGain();
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vel, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  var o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = mtof(m); o.connect(g);
-  var o2 = AC.createOscillator(); o2.type = 'sine'; o2.frequency.value = mtof(m) * 4.07;
-  var g2 = AC.createGain(); g2.gain.setValueAtTime(vel * 0.22, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); o2.connect(g2); g2.connect(g);
-  voiceOut(g, 0.7); o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + 0.5);
-}
-function pad(t, notes, len) {
-  var f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 820; f.Q.value = 0.4;
-  var lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 0.11; lg.gain.value = 260; lfo.connect(lg); lg.connect(f.frequency);
-  var g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.075, t + 2.6); g.gain.setValueAtTime(0.075, t + len - 1); g.gain.linearRampToValueAtTime(0.0001, t + len + 3.2);
-  f.connect(g); voiceOut(g, 0.6);
-  for (var i = 0; i < notes.length; i++) for (var d = -1; d <= 1; d += 2) {
-    var o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(notes[i]); o.detune.value = d * 7 + (Math.random() - 0.5) * 3;
-    o.connect(f); o.start(t); o.stop(t + len + 3.4);
-  }
-  lfo.start(t); lfo.stop(t + len + 3.4);
-}
-function flute(t, m, vel, len) {
-  var o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = mtof(m);
-  var v = AC.createOscillator(), vg = AC.createGain(); v.frequency.value = 4.8; vg.gain.value = mtof(m) * 0.004; v.connect(vg); vg.connect(o.frequency);
-  var g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vel, t + 0.35); g.gain.setValueAtTime(vel, t + len * 0.6); g.gain.linearRampToValueAtTime(0.0001, t + len);
-  o.connect(g); voiceOut(g, 0.8); o.start(t); v.start(t); o.stop(t + len + 0.1); v.stop(t + len + 0.1);
-}
-/* Chords: a bass note and the notes the melody may use. */
-var PROG_A = [[50, [62, 66, 69, 73, 76, 78]], [47, [62, 66, 69, 71, 74, 78]], [43, [59, 62, 66, 67, 71, 74]], [45, [61, 64, 66, 69, 71, 76]]];
-var PROG_B = [[43, [59, 62, 66, 67, 71, 74]], [42, [61, 62, 66, 69, 73, 74]], [40, [59, 62, 64, 67, 71, 74]], [45, [61, 64, 67, 69, 73, 76]]];
-var gen = null;
-function pianoGen() {
-  var beat = 0.88, bar = beat * 4, prog = PROG_A, ci = 0, last = 69;
-  return function (t) {
-    if (ci % 4 === 0) prog = Math.random() < 0.6 ? PROG_A : PROG_B;
-    var ch = prog[ci % 4]; ci++;
-    piano(t, ch[0], 0.16); piano(t + beat * 2, ch[0] + 7, 0.08);
-    var steps = [0, 1, 1.5, 2, 3, 3.5];
-    for (var i = 0; i < steps.length; i++) {
-      if (Math.random() < (i === 0 ? 0.5 : 0.42)) {
-        var tones = ch[1], best = tones[0], bd = 99;
-        for (var j = 0; j < tones.length; j++) { var d = Math.abs(tones[j] - last) + Math.random() * 6; if (d < bd) { bd = d; best = tones[j]; } }
-        last = best; piano(t + steps[i] * beat + Math.random() * 0.02, best, 0.07 + Math.random() * 0.07);
-        if (Math.random() < 0.15) piano(t + steps[i] * beat, best - 12, 0.05);
-      }
-    }
-    if (Math.random() < 0.12) return bar * 1.5;
-    return bar;
-  };
-}
-function stringsGen() {
-  var ci = 0, prog = PROG_A;
-  return function (t) {
-    if (ci % 4 === 0) prog = Math.random() < 0.5 ? PROG_A : PROG_B;
-    var ch = prog[ci % 4], len = 7.5; ci++;
-    var tones = ch[1];
-    pad(t, [ch[0], ch[0] + 12, tones[1], tones[3]], len);
-    if (Math.random() < 0.55) { var n = 1 + Math.floor(Math.random() * 3), tt = t + 1.5; for (var i = 0; i < n; i++) { flute(tt, tones[2 + Math.floor(Math.random() * 4)] + 12, 0.035, 2.2); tt += 1.6 + Math.random(); } }
-    return len;
-  };
-}
-/* Silent Night (Franz Gruber, 1818), in note number and beats. */
-var SILENT = [[67,1.5],[69,.5],[67,1],[64,3],[67,1.5],[69,.5],[67,1],[64,3],[74,2],[74,1],[71,3],[72,2],[72,1],[67,3],
-  [69,2],[69,1],[72,1.5],[71,.5],[69,1],[67,1.5],[69,.5],[67,1],[64,3],[69,2],[69,1],[72,1.5],[71,.5],[69,1],[67,1.5],[69,.5],[67,1],[64,3],
-  [74,2],[74,1],[77,1.5],[74,.5],[71,1],[72,3],[76,3],[72,1.5],[67,.5],[64,1],[67,1.5],[65,.5],[62,1],[60,6]];
-var SILENT_BASS = [48,48,48,48,43,43,48,48,41,41,48,48,41,41,48,48,43,43,48,48,48,43,48,48];
-var MB_CHORDS = [[48, [60, 64, 67, 72, 76, 79]], [41, [60, 65, 69, 72, 77, 81]], [43, [62, 67, 71, 74, 79, 83]], [45, [60, 64, 69, 72, 76, 81]]];
-function musicboxGen() {
-  var round = 0, beat = 0.6;
-  return function (t) {
-    round++;
-    if (round % 3 === 1) {
-      var tt = t;
-      for (var i = 0; i < SILENT.length; i++) { musicbox(tt, SILENT[i][0] + 12, 0.11); tt += SILENT[i][1] * beat; }
-      for (i = 0; i < SILENT_BASS.length; i++) musicbox(t + i * 3 * beat, SILENT_BASS[i] + 12, 0.06);
-      return tt - t + beat * 6;
-    }
-    var bars = 8, ttt = t, last = 76;
-    for (var b = 0; b < bars; b++) {
-      var ch = MB_CHORDS[[0, 1, 2, 0, 3, 1, 2, 0][b]];
-      musicbox(ttt, ch[0] + 12, 0.05);
-      for (var s = 0; s < 6; s++) {
-        if (Math.random() < 0.62) {
-          var tones = ch[1], best = tones[0], bd = 99;
-          for (var j = 0; j < tones.length; j++) { var d = Math.abs(tones[j] - last) + Math.random() * 5; if (d < bd) { bd = d; best = tones[j]; } }
-          last = best; musicbox(ttt + s * beat * 0.5, best + 12, 0.07 + Math.random() * 0.04);
-        }
-      }
-      ttt += beat * 3;
-    }
-    return ttt - t + beat * 3;
-  };
-}
-function setMusic(i, quiet) {
-  state.music = i; save();
-  if (!AC) return;
-  clearInterval(musicTimer); musicTimer = null;
-  musicBus.gain.cancelScheduledValues(AC.currentTime);
-  musicBus.gain.setValueAtTime(musicBus.gain.value, AC.currentTime);
-  if (!i) { musicBus.gain.linearRampToValueAtTime(0.0001, AC.currentTime + 1.5); return; }
-  musicBus.gain.linearRampToValueAtTime(0.0001, AC.currentTime + 0.6);
-  var startAt = AC.currentTime + 0.8;
-  musicBus.gain.setValueAtTime(0.75, startAt - 0.05);
-  gen = [null, pianoGen, stringsGen, musicboxGen][i]();
-  var next = startAt;
-  musicTimer = setInterval(function () {
-    if (paused) { if (next < AC.currentTime) next = AC.currentTime + 0.3; return; }
-    while (next < AC.currentTime + 1.2) next += gen(next);
-  }, 200);
-}
-function setVolume() {
-  if (!AC) return;
-  master.gain.cancelScheduledValues(AC.currentTime);
-  master.gain.setValueAtTime(master.gain.value, AC.currentTime);
-  master.gain.linearRampToValueAtTime(paused ? 0.0001 : 0.9, AC.currentTime + 0.25);
-}
-function setCrackle() {
-  if (!AC) return;
-  fireBus.gain.cancelScheduledValues(AC.currentTime); fireBus.gain.setValueAtTime(fireBus.gain.value, AC.currentTime);
-  fireBus.gain.linearRampToValueAtTime(state.crackle ? 1 : 0.0001, AC.currentTime + 0.6);
-}
-
-/* ---------- Remote, full screen, staying awake ---------- */
+/* ---------- Remote, full screen, feedback ---------- */
 var toastEl = document.getElementById('toast'), toastTimer;
 function toast(msg, sub) {
   toastEl.textContent = msg;
   if (sub) { var s = document.createElement('small'); s.textContent = sub; toastEl.appendChild(s); }
   toastEl.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1700);
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1900);
 }
-function keepAwake() {
-  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
-  var v = document.getElementById('keepawake'); if (v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
-}
-document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && started) { keepAwake(); if (AC && AC.resume) AC.resume(); } });
+function keepAwake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} }
+var started = false;
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') { playSafe(vids[cur]); if (started) { keepAwake(); if (AC && AC.resume) AC.resume(); } }
+});
 function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function fullScreen() {
   if (isFull()) return;
@@ -1281,39 +211,33 @@ function fullScreen() {
 }
 var focusEl = document.getElementById('focus');
 function focusLayer() { try { focusEl.focus({ preventScroll: true }); } catch (e) { try { focusEl.focus(); } catch (e2) {} } }
-var started = false, debug = false;
 function start() {
   if (started) return;
   started = true;
   focusLayer();
   document.getElementById('hint').classList.add('gone');
-  fullScreen(); keepAwake(); initAudio(); centerScroll();
-  showHelp(7000);
+  fullScreen(); keepAwake(); initAudio(); centerScroll(); playSafe(vids[cur]);
 }
-var helpEl = document.getElementById('help'), helpTimer;
-function showHelp(ms) { helpEl.classList.add('show'); clearTimeout(helpTimer); helpTimer = setTimeout(function () { helpEl.classList.remove('show'); }, ms || 6000); }
 
-/* ---------- Settings card: hold OK. Plain rows, no buttons, so the blue circle has nothing to jump between. ---------- */
+/* ---------- Settings card: hold OK ---------- */
 var menuEl = document.getElementById('menu'), menuOpen = false, menuSel = 0, menuTimer = null;
 var ROT_NAMES = { none: 'upright', left: 'turned left', right: 'turned right' };
-function toggleCrackle() { state.crackle = !state.crackle; save(); setCrackle(); }
-function nextMusic() { setMusic((state.music + 1) % MUSIC.length); }
-function nextSize() { state.size = (state.size + 1) % SIZES.length; save(); }
-function nextDim() { state.dim = (state.dim + 1) % DIMS.length; save(); dimEl.style.opacity = DIMS[state.dim].a; }
-function togglePause() { paused = !paused; setVolume(); }
-function nextRotate() { state.rotate = state.rotate === 'none' ? 'left' : state.rotate === 'left' ? 'right' : 'none'; save(); FW = 0; layout(); }
+function setRotate() { stage.className = state.rotate === 'left' ? 'turn-left' : state.rotate === 'right' ? 'turn-right' : ''; }
 function goArt() { closeMenu(); toast('Art wall'); setTimeout(function () { location.href = '../'; }, 300); }
 function menuItems() {
-  return [
-    { t: 'Music: ' + MUSIC[state.music], a: nextMusic },
-    { t: 'Crackle: ' + (state.crackle ? 'on' : 'off'), a: toggleCrackle },
-    { t: 'Fire: ' + SIZES[state.size].name, a: nextSize },
-    { t: 'Brightness: ' + DIMS[state.dim].name, a: nextDim },
-    { t: paused ? 'Sound: paused' : 'Sound: on', a: togglePause },
-    { t: 'Picture: ' + ROT_NAMES[state.rotate || 'none'], a: nextRotate },
+  var items = [
+    { t: 'Clip: ' + (CLIPS.length ? CLIPS[state.clip].name : 'none listed'), a: function () { changeClip(1); } },
+    { t: 'Crackle: ' + (state.crackle ? 'on' : 'off'), a: function () { state.crackle = !state.crackle; save(); setSound(); } }
+  ];
+  if (MUSIC) items.push({ t: 'Music: ' + (state.music ? 'on' : 'off'), a: function () { state.music = !state.music; save(); setSound(); } });
+  items.push(
+    { t: 'Brightness: ' + DIMS[state.dim].name, a: function () { state.dim = (state.dim + 1) % DIMS.length; save(); dimEl.style.opacity = DIMS[state.dim].a; } },
+    { t: paused ? 'Sound: paused' : 'Sound: on', a: function () { paused = !paused; setSound(); } },
+    { t: 'Picture: ' + ROT_NAMES[state.rotate || 'none'], a: function () { state.rotate = state.rotate === 'none' ? 'left' : state.rotate === 'left' ? 'right' : 'none'; save(); setRotate(); } },
     { t: 'Go to the art wall', a: goArt },
     { t: 'Close', a: closeMenu }
-  ];
+  );
+  return items;
 }
 function drawMenu() {
   menuEl.innerHTML = '';
@@ -1327,13 +251,12 @@ function drawMenu() {
   menuTouch();
 }
 function menuTouch() { clearTimeout(menuTimer); menuTimer = setTimeout(closeMenu, 20000); }
-function openMenu() { menuOpen = true; menuSel = 0; helpEl.classList.remove('show'); drawMenu(); menuEl.classList.add('open'); }
+function openMenu() { menuOpen = true; menuSel = 0; drawMenu(); menuEl.classList.add('open'); }
 function closeMenu() { if (!menuOpen) return; menuOpen = false; menuEl.classList.remove('open'); clearTimeout(menuTimer); }
 function menuMove(d) { var n = menuItems().length; menuSel = (menuSel + d + n) % n; drawMenu(); }
 var lastDo = 0;
 function menuDo() { if (Date.now() - lastDo < 350) return; lastDo = Date.now(); menuItems()[menuSel].a(); if (menuOpen) drawMenu(); }
 
-/* Holding OK works whether the remote sends a key (Enter) or a click (blue circle). */
 var holdTimer = null, holdFired = false, enterDown = false;
 function holdStart() { holdFired = false; clearTimeout(holdTimer); holdTimer = setTimeout(function () { holdFired = true; if (menuOpen) closeMenu(); else openMenu(); }, 800); }
 function holdEnd() { clearTimeout(holdTimer); }
@@ -1341,18 +264,8 @@ document.addEventListener('mousedown', function () { if (started) holdStart(); }
 document.addEventListener('mouseup', holdEnd);
 window.addEventListener('keyup', function (e) { if (e.key === 'Enter' || e.keyCode === 13) { enterDown = false; holdEnd(); } }, true);
 
-function changeScene(d) {
-  state.scene = (state.scene + d + SCENES.length) % SCENES.length; save();
-  fadeEl.classList.remove('clear');
-  setTimeout(function () { drawScene(); fadeEl.classList.add('clear'); toast(SCENES[state.scene].name); }, 650);
-}
-function act(name) {
-  if (name === 'right') changeScene(1);
-  else if (name === 'left') changeScene(-1);
-}
 window.addEventListener('keydown', function (e) {
   var k = e.key, c = e.keyCode;
-  if (debug) toast('Key ' + (k || '?'), 'code ' + c);
   if (!started) { if (k === 'Enter' || k === ' ' || c === 13) { e.preventDefault(); start(); } return; }
   fullScreen();
   if (AC && AC.state === 'suspended' && AC.resume) AC.resume();
@@ -1369,22 +282,14 @@ window.addEventListener('keydown', function (e) {
   if (isEnter) { e.preventDefault(); if (!enterDown) { enterDown = true; holdStart(); focusLayer(); } return; }
   if (k === 'ContextMenu' || k === 'Menu' || c === 18 || c === 10133 || c === 93) { e.preventDefault(); openMenu(); return; }
   if (e.repeat && (c === 37 || c === 39)) { e.preventDefault(); return; }
-  if (k === 'ArrowRight' || c === 39) { e.preventDefault(); act('right'); }
-  else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); act('left'); }
+  if (k === 'ArrowRight' || c === 39) { e.preventDefault(); changeClip(1); }
+  else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); changeClip(-1); }
   else if (k === 'ArrowUp' || c === 38 || k === 'ArrowDown' || c === 40) { e.preventDefault(); }
-  else if (k === '1') { state.crackle = !state.crackle; save(); setCrackle(); toast(state.crackle ? 'Crackle on' : 'Crackle off'); }
-  else if (k === '2') { var m = (state.music + 1) % MUSIC.length; setMusic(m); toast('Music: ' + MUSIC[m]); }
-  else if (k === '3') { state.size = (state.size + 1) % SIZES.length; save(); toast(SIZES[state.size].name); }
-  else if (k === '4') { state.dim = (state.dim + 1) % DIMS.length; save(); dimEl.style.opacity = DIMS[state.dim].a; toast(DIMS[state.dim].name); }
-  else if (k === '5' || k === ' ' || k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause' || c === 10252 || c === 415 || c === 19 || c === 179) {
+  else if (k === ' ' || k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause' || c === 10252 || c === 415 || c === 19 || c === 179) {
     e.preventDefault();
     paused = k === 'MediaPlay' || c === 415 ? false : k === 'MediaPause' || c === 19 ? true : !paused;
-    setVolume(); toast(paused ? 'Sound paused' : 'Sound on');
+    setSound(); toast(paused ? 'Sound paused' : 'Sound on');
   }
-  else if (k === '6') { toast('Art wall'); setTimeout(function () { location.href = '../'; }, 300); }
-  else if (k === '7') { debug = !debug; toast(debug ? 'Key check on' : 'Key check off', debug ? 'press any button' : ''); }
-  else if (k === '8') { state.rotate = state.rotate === 'none' ? 'left' : state.rotate === 'left' ? 'right' : 'none'; save(); FW = 0; layout(); toast({ none: 'Upright', left: 'Turned left', right: 'Turned right' }[state.rotate]); }
-  else if (k === '9' || k === '0' || k === 'Info' || c === 457) { showHelp(9000); }
 }, true);
 document.addEventListener('click', function () {
   if (!started) { start(); return; }
@@ -1407,17 +312,15 @@ window.addEventListener('scroll', function () {
   var dx = window.scrollX - window.innerWidth, dy = window.scrollY - window.innerHeight;
   if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
   scrollBusy = true;
-  if (debug) toast('Scroll', 'x ' + Math.round(dx) + ', y ' + Math.round(dy));
   if (menuOpen) {
     menuTouch();
     if (Math.abs(dy) > Math.abs(dx)) menuMove(dy > 0 ? 1 : -1); else if (dx > 0) menuDo(); else closeMenu();
     setTimeout(function () { scrollBusy = false; centerScroll(); }, 400); return;
   }
-  if (Math.abs(dx) >= Math.abs(dy)) act(dx > 0 ? 'right' : 'left'); else act(dy > 0 ? 'down' : 'up');
-  setTimeout(function () { scrollBusy = false; centerScroll(); }, 600);
+  if (Math.abs(dx) >= Math.abs(dy)) changeClip(dx > 0 ? 1 : -1);
+  setTimeout(function () { scrollBusy = false; centerScroll(); }, 900);
 }, { passive: true });
-window.addEventListener('resize', function () { layout(); if (started) centerScroll(); });
-if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
+window.addEventListener('resize', function () { if (started) centerScroll(); });
 /* Samsung's Back button: stay on the page instead of leaving it. */
 try { history.pushState({ fire: 1 }, ''); } catch (e) {}
 window.addEventListener('popstate', function () {
@@ -1431,12 +334,15 @@ document.addEventListener('mousemove', function () {
   idleTimer = setTimeout(function () { document.body.classList.add('idle'); }, 4000);
 });
 
-initGL();
-if (/debug/.test(location.hash)) setTimeout(function () { toast(gl ? 'Fire: WebGL' : 'Fire: simple mode', 'size ' + fireC.width + 'x' + fireC.height); }, 1200);
-layout();
-setTimeout(function () { fadeEl.classList.add('clear'); }, 80);
-requestAnimationFrame(frameLoop);
-window.__fire = { state: state, scenes: SCENES, gl: function () { return !!gl; }, start: start, changeScene: changeScene };
+setRotate();
+dimEl.style.opacity = DIMS[state.dim] ? DIMS[state.dim].a : 0;
+fetch('clips.txt?t=' + Date.now()).then(function (r) { return r.text(); }).then(function (t) {
+  parseList(t);
+  if (!CLIPS.length) { fadeEl.classList.add('clear'); toast('No clips listed yet', 'add one to clips.txt'); return; }
+  if (state.clip >= CLIPS.length) state.clip = 0;
+  loadClip(state.clip);
+}).catch(function () { fadeEl.classList.add('clear'); toast('Could not read clips.txt'); });
+window.__fire = { state: state, clips: function () { return CLIPS; }, crackle: function () { return !!crackleBuf; }, video: function () { return vids[cur]; }, start: start, changeClip: changeClip };
 })();
 </script>
 </body>
