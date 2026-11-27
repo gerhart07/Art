@@ -56,7 +56,7 @@ body.idle, body.idle * { cursor: none !important; }
 body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placard { opacity: 1; }
 .placard .t { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.08em; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
 .placard .t { min-width: 0; flex: 0 1 auto; }
-.placard .by { overflow: hidden; text-overflow: ellipsis; flex: 0 3 auto; min-width: 0; max-width: 42%; font-size: .86em; }
+.placard .by { overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; max-width: 40%; font-size: .86em; }
 .placard.tight .code { display: none; }
 .placard .code { opacity: .6; font-size: .6em; font-weight: 500; letter-spacing: .08em; flex-shrink: 0; }
 /* Late at night the pictures dim a little, so the room stays calm. */
@@ -383,7 +383,7 @@ function placardParts(it) {
     if (it.year && it.year.length <= 12) by = by ? by + ', ' + it.year : it.year;
   } else {
     t = t.replace(/[,.]?\s*(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}).*$/, '').replace(/\s*\((?:actm|d\.j\.b\.|[a-z]{1,6}\.?)\)/gi, '')
-         .replace(/\s+(?:jpg|edit|crop\w*|img_?\w*|dsc\w*)\b.*$/i, '').replace(/[\s,.-]+\d{1,3}$/, '').replace(/[.\s]+(?:[a-z]\.){1,4}[a-z]?\.?$/i, '').replace(/[.\s]+$/, '').replace(/\s+-\s+[a-z ]+$/, '').replace(/([a-z])\d{1,2}$/i, '$1').trim();
+         .replace(/\s+(?:jpg|edit|crop\w*|img_?\w*|dsc\w*)\b.*$/i, '').replace(/[\s,.-]+\d{1,3}$/, '').replace(/[.\s]+(?:[a-z]\.){1,4}[a-z]?\.?$/i, '').replace(/\s+--\s+.*$/, '').replace(/[.\s]+$/, '').replace(/\s+-\s+[a-z ]+$/, '').replace(/([a-z])\d{1,2}$/i, '$1').trim();
   }
   return { t: t, by: by };
 }
@@ -506,8 +506,13 @@ function render(it) {
 /* Keep labels big; only shrink a long one a little, then let it trail off. */
 function fitLabel(cap) {
   var sc = .56; cap.style.setProperty('--label-scale', sc);
-  if (cap.scrollWidth > cap.clientWidth + 1) cap.classList.add('tight');      // the small code steps aside first
-  while (cap.scrollWidth > cap.clientWidth + 1 && sc > .44) { sc -= .03; cap.style.setProperty('--label-scale', sc.toFixed(2)); }
+  function over() {   // the spans shrink to fit, so add up what each one would need at full length
+    var need = 0, kids = cap.children, n = 0;
+    for (var i = 0; i < kids.length; i++) if (getComputedStyle(kids[i]).display !== 'none') { need += kids[i].scrollWidth; n++; }
+    return need + (n - 1) * parseFloat(getComputedStyle(cap).fontSize) * .7 > cap.clientWidth;
+  }
+  if (over()) cap.classList.add('tight');      // the small code steps aside first
+  while (over() && sc > .44) { sc -= .03; cap.style.setProperty('--label-scale', sc.toFixed(2)); }
 }
 function toneOK(img, blueOK, darkOK) {
   try {
