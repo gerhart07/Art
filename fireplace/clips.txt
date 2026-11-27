@@ -6,13 +6,14 @@
 # The name and tags are optional. A full web link to a video file works too.
 #
 # Tags pick when a clip plays. The page changes clips every 10 minutes and prefers ones that fit today.
-#   Season:   winter, spring, summer, fall      (the clip only plays in that season)
+#   Season:   winter, spring, summer, fall      (the clip only plays in that season; winter starts Nov 15)
 #   Holiday:  christmas, newyear, thanksgiving, halloween, valentines, july4   (only plays then, and comes first then)
 #   Weather:  clear, cloudy, fog, rain, snow    (comes first when the weather in Brea matches)
-#   Time:     day, night                        (a small nudge toward the right time of day)
+#   Time:     day, evening, night               (a small nudge toward the right time of day)
 # A clip with no tags fits any day.
 # Lines that start with # are notes and are skipped.
 
+clips/cat-by-the-stove.mp4 | Cat by the stove | winter, snow, evening, night
 https://videos.pexels.com/video-files/6305999/6305999-uhd_1440_2732_24fps.mp4 | Christmas stockings | christmas
 https://videos.pexels.com/video-files/18086762/18086762-uhd_1440_2560_24fps.mp4 | Tall fireplace
 https://videos.pexels.com/video-files/32575073/13890296_1440_2560_30fps.mp4 | Fireplace glow

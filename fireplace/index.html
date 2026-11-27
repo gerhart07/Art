@@ -120,16 +120,20 @@ function today() {
   else if (m === 10 && day >= 15) hol = 'halloween';
   else if (m === 2 && day >= 7 && day <= 14) hol = 'valentines';
   else if ((m === 6 && day >= 28) || (m === 7 && day <= 5)) hol = 'july4';
-  return { season: SEASONS[Math.floor((m % 12) / 3)], holiday: hol, weather: wx, time: h >= 7 && h < 18 ? 'day' : 'night' };
+  var seasons = [SEASONS[Math.floor((m % 12) / 3)]];
+  if ((m === 11 && day >= 15) || (m === 3 && day <= 15)) seasons.push('winter'); /* snow scenes welcome a little early and late */
+  var times = h >= 7 && h < 17 ? ['day'] : h < 21 && h >= 16 ? ['evening'] : ['night'];
+  if (h >= 18 && h < 21) times.push('night');
+  return { seasons: seasons, holiday: hol, weather: wx, times: times };
 }
 function fits(c, t) {
   var has = function (list) { return c.tags.filter(function (x) { return list.indexOf(x) >= 0; }); };
   var s = has(SEASONS), h = has(HOLIDAYS);
-  if (s.length && s.indexOf(t.season) < 0) return -1;
+  if (s.length && !s.some(function (x) { return t.seasons.indexOf(x) >= 0; })) return -1;
   if (h.length && h.indexOf(t.holiday) < 0) return -1;
   var score = 1 + (h.length ? 4 : 0) + (s.length ? 2 : 0);
   if (t.weather && c.tags.indexOf(t.weather) >= 0) score += 3;
-  if (c.tags.indexOf(t.time) >= 0) score += 1;
+  if (c.tags.some(function (x) { return t.times.indexOf(x) >= 0; })) score += 1;
   return score;
 }
 function pickClip(avoid) {
@@ -151,15 +155,17 @@ function updateWeather() {
 }
 
 /* ---------- Video: one player. TVs often have a single video decoder, so only one clip loads at a time.
-   At the end of a clip the picture dips softly toward dark and starts over. ---------- */
-var vid = document.getElementById('va'), watchTimer = null;
+   Clips in the clips folder are made to loop seamlessly, so they just repeat. A clip linked from elsewhere
+   dips softly toward dark at its end and starts over, to hide the jump. ---------- */
+var vid = document.getElementById('va'), watchTimer = null, seamless = false;
 function playSafe(v) { try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
 function loadClip(i) {
   if (!CLIPS.length) return;
   state.clip = (i + CLIPS.length) % CLIPS.length; save();
   fading = false;
   vid.classList.remove('show');
-  vid.loop = false; vid.src = CLIPS[state.clip].src; vid.load(); playSafe(vid);
+  var src = CLIPS[state.clip].src; seamless = !/^https?:/i.test(src);
+  vid.loop = seamless; vid.src = src; vid.load(); playSafe(vid);
   clearTimeout(watchTimer);
   watchTimer = setTimeout(function () { if (vid.readyState < 3 || vid.paused) report('still loading'); }, 9000);
 }
@@ -171,7 +177,7 @@ function report(what) {
 }
 vid.addEventListener('playing', function () { clearTimeout(watchTimer); vid.classList.add('show'); fadeEl.classList.add('clear'); dipEl.classList.remove('on'); });
 vid.addEventListener('timeupdate', function () {
-  if (!vid.duration || !isFinite(vid.duration) || fading) return;
+  if (seamless || !vid.duration || !isFinite(vid.duration) || fading) return;
   if (vid.currentTime >= vid.duration - .9) { fading = true; dipEl.classList.add('on'); }
 });
 vid.addEventListener('ended', function () {
