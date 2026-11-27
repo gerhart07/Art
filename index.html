@@ -93,6 +93,9 @@ var BUCKETS = [
   { id: 'print', name: 'Japanese prints', kind: 'art',   src: 'cma', q: 'type=Print&department=Japanese%20Art', w: 1.5 }
 ];
 var SKIP_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
+/* Photos only: drop wildlife, plants, people and machines, judged from the file's Commons categories. */
+var BAD_CATS = /\b(birds?|animals?|mammals?|insects?|butterfl\w*|moths?|dragonfl\w*|spiders?|arachnids?|reptiles?|amphibians?|fish|fishes|molluscs?|invertebrates?|fungi|mushrooms?|flowers?|plants|orchids?|cattle|cows?|horses?|dogs?|cats|people|sportspeople|portraits?|aircraft|airplanes?|ships|warships|military|weapons?|cars|automobiles|trains|nude\w*)\b/i;
+var SPECIES_CAT = /Featured pictures of [A-Z][a-z]+ [a-z]+(\||$)/;
 var MIN_RATIO = 1.15;   // height divided by width, so only tall pictures
 var MIN_HEIGHT = 1500;
 
@@ -134,7 +137,7 @@ function cleanTitle(t) { return t.replace(/^File:/, '').replace(/\.(jpe?g|png|ti
 
 function fetchWM(b) {
   var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: b.q, gsrlimit: 30, gsrsort: 'random',
-            prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiextmetadatafilter: 'Artist|LicenseShortName|ObjectName|DateTimeOriginal',
+            prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiextmetadatafilter: 'Artist|LicenseShortName|ObjectName|Categories',
             iiurlheight: 2560, format: 'json', formatversion: 2, origin: '*' };
   var qs = Object.keys(p).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
   return fetch(WM + '?' + qs).then(function (r) { return r.json(); }).then(function (j) {
@@ -145,6 +148,7 @@ function fetchWM(b) {
       var title = cleanTitle(stripTags(m.ObjectName && m.ObjectName.value) || pg.title);
       return { code: 'W' + pg.pageid.toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
                w: ii.width, h: ii.height, url: ii.thumburl || ii.url, title: title,
+               cats: (m.Categories && m.Categories.value) || '',
                credit: [stripTags(m.Artist && m.Artist.value), stripTags(m.LicenseShortName && m.LicenseShortName.value), 'Wikimedia Commons'].filter(Boolean).join(' · ') };
     }).filter(Boolean);
   });
@@ -174,6 +178,7 @@ function fetchCMA(b) {
 var queue = [], hist = [], pos = -1, filling = false, failures = 0;
 function fits(it) {
   return it.h / it.w >= MIN_RATIO && it.h >= MIN_HEIGHT && !SKIP_WORDS.test(it.title) &&
+         !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
          !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
