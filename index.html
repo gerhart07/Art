@@ -65,9 +65,9 @@ body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .captio
     <div class="slide" id="s1"></div>
     <div id="hint">
       <h1>Art Wall</h1>
-      <p>Press <kbd>OK</kbd> to start.</p>
+      <p>Press <kbd>OK</kbd> to start in full screen.</p>
       <p><kbd>▲</kbd> more like this &nbsp; <kbd>▼</kbd> never again</p>
-      <p><kbd>▶</kbd> next &nbsp; <kbd>◀</kbd> back &nbsp; <kbd>OK</kbd> pause</p>
+      <p><kbd>▶</kbd> next &nbsp; <kbd>◀</kbd> back &nbsp; <kbd>5</kbd> or <kbd>⏯</kbd> pause</p>
       <p><kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels</p>
     </div>
     <div id="status"></div>
@@ -292,9 +292,16 @@ function keepAwake() {
   var v = document.getElementById('keepawake'); var p = v.play(); if (p && p.catch) p.catch(function () {});
 }
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && started) keepAwake(); });
+function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function fullScreen() {
+  if (isFull()) return;
   var el = document.documentElement;
-  try { (el.requestFullscreen || el.webkitRequestFullscreen || function () {}).call(el); } catch (e) {}
+  try {
+    var r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) :
+            el.webkitRequestFullscreen ? el.webkitRequestFullscreen() : null;
+    if (r && r.catch) r.catch(function () {});
+  } catch (e) {}
+}
 }
 
 function start() {
@@ -308,13 +315,17 @@ function start() {
 document.addEventListener('keydown', function (e) {
   var k = e.key, c = e.keyCode;
   if (!started) { if (k === 'Enter' || k === ' ' || c === 13) { e.preventDefault(); start(); } return; }
+  fullScreen();
   if (k === 'ArrowUp' || c === 38) { e.preventDefault(); like(); }
   else if (k === 'ArrowDown' || c === 40) { e.preventDefault(); never(); }
   else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); forward(); }
   else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); back(); }
-  else if (k === 'Enter' || k === ' ' || c === 13) {
-    e.preventDefault(); paused = !paused; schedule(); toast(paused ? 'Paused' : 'Playing');
-    if (!paused) fullScreen();
+  else if (k === 'Enter' || c === 13) { e.preventDefault(); fullScreen(); }
+  else if (k === '5' || k === ' ' || k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause' ||
+           c === 10252 || c === 415 || c === 19 || c === 179) {
+    e.preventDefault();
+    paused = k === 'MediaPlay' || c === 415 ? false : k === 'MediaPause' || c === 19 ? true : !paused;
+    schedule(); toast(paused ? 'Paused' : 'Playing');
   }
   else if (k === '1') { state.rotate = 'none'; save(); layout(); toast('Upright'); }
   else if (k === '2') { state.rotate = 'left'; save(); layout(); toast('Turned left'); }
@@ -324,7 +335,7 @@ document.addEventListener('keydown', function (e) {
     save(); layout(); toast('Labels: ' + { brief: 'for a moment', always: 'always', off: 'off' }[state.labels]);
   }
 });
-document.addEventListener('click', function () { if (!started) start(); });
+document.addEventListener('click', function () { if (!started) start(); else fullScreen(); });
 
 /* Hidden cursor when the remote's pointer stops moving. */
 var idleTimer;
