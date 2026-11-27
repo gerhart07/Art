@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Picker</title>
+<style>
+body{margin:0;background:#222;color:#ddd;font:11px/1.2 sans-serif}
+#g{display:flex;flex-wrap:wrap;gap:6px;padding:6px}
+.c{width:126px}
+.b{width:126px;height:224px;overflow:hidden;background:#000;position:relative}
+.b img{width:100%;height:100%;object-fit:cover}
+.n{position:absolute;top:2px;left:2px;background:#000c;color:#ff0;font:bold 14px sans-serif;padding:1px 4px}
+.t{height:26px;overflow:hidden;word-break:break-all}
+</style></head><body><div id="g"></div>
+<script>
+var P = new URLSearchParams(location.search), g = document.getElementById('g');
+var api = 'https://commons.wikimedia.org/w/api.php?origin=*&format=json&formatversion=2&action=query&prop=imageinfo&iiprop=size|url&iiurlwidth=260';
+var off = +(P.get('o') || 0), n = +(P.get('n') || 50);
+var url = P.get('t') ? api + '&titles=' + encodeURIComponent(P.get('t').split('|').map(function(t){return 'File:'+t}).join('|'))
+  : api + '&generator=search&gsrnamespace=6&gsrlimit=' + n + '&gsroffset=' + off + '&gsrsearch=' + encodeURIComponent(P.get('q'));
+fetch(url).then(function(r){return r.json()}).then(function(d){
+  var pages = (d.query && d.query.pages || []).filter(function(p){return p.imageinfo});
+  pages.sort(function(a,b){return (a.index||0)-(b.index||0)});
+  window.LIST = pages.map(function(p,i){var ii=p.imageinfo[0];return (off+i)+' '+p.title.slice(5)+' '+ii.width+'x'+ii.height});
+  document.title = 'Picker ' + pages.length;
+  pages.forEach(function(p,i){var ii=p.imageinfo[0];
+    var c=document.createElement('div');c.className='c';
+    c.innerHTML='<div class="b"><img src="'+ii.thumburl+'"><span class="n">'+(off+i)+'</span></div><div class="t"></div>';
+    c.querySelector('.t').textContent=(ii.height/ii.width).toFixed(2)+' '+p.title.slice(5);
+    g.appendChild(c);});
+  var pre=document.createElement('pre');pre.id='list';pre.style.cssText='white-space:pre-wrap;font-size:9px;color:#888';pre.textContent=LIST.join('\n');document.body.appendChild(pre);
+});
+</script></body></html>
