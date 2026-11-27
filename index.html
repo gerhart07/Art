@@ -61,7 +61,8 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
 /* A small square between title and artist: the one Bauhaus mark on the card. */
 .placard .by::before { content: ''; display: inline-block; width: .32em; height: .32em; background: currentColor; vertical-align: .22em; margin-right: .9em; opacity: .9; }
 .placard .code { font-family: var(--label); }
-.placard.tight .code { display: none; }
+.placard.tight .code, .placard.tight .orig { display: none; }
+.placard .orig { opacity: .6; font-size: .72em; flex-shrink: 0; white-space: nowrap; }
 .placard .code { opacity: .6; font-size: .6em; font-weight: 500; letter-spacing: .08em; flex-shrink: 0; }
 /* The one quiet line in the top mat that says why a piece is up today. */
 .reason { position: absolute; left: var(--mat); right: var(--mat); top: 0; height: var(--mat); display: flex; align-items: center; justify-content: center;
@@ -153,6 +154,10 @@ var ANIMALS = ['underwater', 'coral reef', 'jellyfish', 'lionfish', 'koi', 'flam
 var NOPEOPLE = ' -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen';
 var FP = 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000';
 var QI = 'incategory:Quality_images {t} fileh:>2400 filew:<3000';
+var WORLD = ['Persian miniature garden', 'Mughal garden painting', 'Madhubani painting', 'Pichwai painting', 'Balinese painting',
+  'Kamasan painting', 'batik tulis', 'kente cloth', 'bogolan mudcloth', 'Tingatinga painting', 'Ethiopian painting', 'Huichol yarn painting',
+  'Otomi embroidery', 'Navajo rug', 'Shipibo textile', 'mola textile', 'Andean textile', 'Mexican folk art', 'minhwa', 'Chinese landscape painting',
+  'Korean landscape painting', 'Vietnamese lacquer painting', 'Persian carpet', 'Islamic tile panel'];
 var GAP = 'incategory:"Google_Art_Project_paintings" {t}';
 
 /* Base mix (weights add to 100). Your ratings nudge each strand up or down from here. */
@@ -184,9 +189,15 @@ var BUCKETS = [
   { id: 'bloom', cat: 'Flowers', name: 'Flowers', kind: 'nature', src: 'wm', q: QI, terms: FLOWERS, w: 4 },
   // Macro 7
   { id: 'macro', cat: 'Macro', name: 'Macro', kind: 'nature', src: 'wm', q: QI, terms: MACRO, blueOK: true, w: 7 },
-  // Japanese art 6
-  { id: 'print', cat: 'Japanese art', name: 'Japanese prints', kind: 'art', src: 'cma', q: 'type=Print&department=Japanese%20Art&q=landscape', w: 3 },
-  { id: 'jpnt',  cat: 'Japanese art', name: 'Japanese painting', kind: 'art', src: 'cma', q: 'type=Painting&department=Japanese%20Art', w: 3 },
+  // Art from around the world 7: each fetch picks one tradition, so no single culture leads
+  { id: 'world', cat: 'Art from around the world', name: 'Art from around the world', kind: 'art', src: 'cma', w: 4,
+    variants: [ { q: 'type=Painting&department=Japanese%20Art', w: .5, plain: 'Japanese painting' },
+                { q: 'type=Print&department=Japanese%20Art&q=landscape', w: .5, plain: 'Japanese print' },
+                { q: 'type=Painting&department=Chinese%20Art', w: 1, plain: 'Chinese painting' },
+                { q: 'type=Painting&department=Korean%20Art', w: 1, plain: 'Korean painting' },
+                { q: 'type=Painting&department=Indian%20and%20Southeast%20Asian%20Art', w: 1, plain: 'Painting from India' } ] },
+  { id: 'worldw', cat: 'Art from around the world', name: 'Art from around the world', kind: 'art', src: 'wm', w: 3,
+    q: '"{t}" fileh:>1500 filetype:bitmap' + NOPEOPLE, terms: WORLD },
   // Artful animals 5
   { id: 'anim',  cat: 'Animals', name: 'Artful animals', kind: 'animal', src: 'wm', q: FP, terms: ANIMALS, blueOK: true, w: 5 },
 
@@ -394,7 +405,7 @@ function holidayBucket() {
 var BAD_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|maps?|diagram|logo)\b/i;
 var ANIMAL_WORDS = /\b(goats?|sheep|lambs?|deer|elephants?|lions?|tigers?|bears?|wolves|wolf|foxes|fox|zebras?|giraffes?|monkeys?|apes|camels?|donkeys?|pigs?|ducks?|geese|swans?|owls?|eagles?|seals?|whales?|dolphins?|penguins?|livestock|wildlife|fauna|zoo|ziegen|capra|ovis|bos|equus|canis|felis|panthera|cervus|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?)\b/i;
 /* Artful animals: still no people, captivity or hunting. */
-/* Dead game and kitchen still lifes (hanging birds, fish, hares, meat): no place in a bedroom. Japanese prints keep their carp and birds. */
+/* Dead game and kitchen still lifes (hanging birds, fish, hares, meat): no place in a bedroom. Art from around the world keeps its living carp and birds. */
 var GAME_WORDS = /\b(game|gamebag|chickens?|hens?|cocks?|roosters?|capons?|fowls?|poultry|ducks?|geese|goose|pheasants?|partridges?|quails?|grouse|woodcocks?|snipes?|plovers?|larks?|rabbits?|hares?|fish|fishes|herrings?|salmon|trout|carp|cod|eels?|pike|oysters?|lobsters?|crabs?|shrimps?|meats?|hams?|beef|pork|mutton|veal|venison|boar|turkeys?|carcass\w*|butcher\w*|kitchen|larder|pantry|dinner|plucked|kill\w*|trophy|trophies|slain)\b/i;
 var ANIMAL_BAD = /\b(people|portraits?|nude\w*|zoo|captive|hunting|hunted|dead|killed|prey|aircraft|military|weapons?|livestock|cattle|taxiderm\w*|specimens?)\b/i;
 /* Photos only: drop wildlife, plants, people and machines, judged from the file's Commons categories. */
@@ -468,7 +479,16 @@ function placardParts(it) {
     t = t.replace(/[,.]?\s*(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}).*$/, '').replace(/\s*\((?:actm|d\.j\.b\.|[a-z]{1,6}\.?)\)/gi, '')
          .replace(/\s+(?:jpg|edit|crop\w*|img_?\w*|dsc\w*)\b.*$/i, '').replace(/[\s,.-]+\d{1,3}$/, '').replace(/[.\s]+(?:[a-z]\.){1,4}[a-z]?\.?$/i, '').replace(/\s+--\s+.*$/, '').replace(/[.\s]+$/, '').replace(/\s+-\s+[a-z ]+$/, '').replace(/([a-z])\d{1,2}$/i, '$1').trim();
   }
-  return { t: t, by: by };
+  // Titles and names in another script: English first, the original as a small second line when it fits.
+  var orig = (t.match(NON_LATIN) || []).join(' ').trim();
+  t = latinOnly(t); by = latinOnly(by);
+  if (!/[a-z]{2}/i.test(t)) t = it.plain || (it.kind === 'art' ? 'Untitled' : 'Photograph');
+  return { t: t, by: by, orig: orig };
+}
+var NON_LATIN = /[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\u2190-\u25FF\s]+(?:[\s\u30FB\u00B7]+[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\u2190-\u25FF\s]+)*/g;
+function latinOnly(x) {
+  return x.replace(NON_LATIN, ' ').replace(/\(\s*[,;:\-]*\s*\)|\[\s*\]/g, ' ').replace(/\s+([,;:.)])/g, '$1').replace(/\(\s+/g, '(')
+          .replace(/^[\s,;:.\-–]+|[\s,;:\-–]+$/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 function withFlags(b, it) {
   it.blueOK = b.blueOK; it.darkOK = b.darkOK; it.allowPeople = b.allowPeople; it.memorial = b.memorial; if (b.obs) it.obs = b.obs;
@@ -477,7 +497,8 @@ function withFlags(b, it) {
 }
 function fetchWM(b) {
   var terms = b.dyn ? b.dyn() : b.terms;
-  var q = terms ? b.q.replace('{t}', terms[Math.floor(Math.random() * terms.length)]) : b.q;
+  var term = terms ? terms[Math.floor(Math.random() * terms.length)] : '', q = terms ? b.q.replace('{t}', term) : b.q;
+  var plain = b.id === 'worldw' && term ? term.charAt(0).toUpperCase() + term.slice(1) : '';
   var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: q, gsrlimit: 30, gsrsort: 'random',
             prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiextmetadatafilter: 'Artist|LicenseShortName|ObjectName|Categories',
             iiurlheight: 2560, format: 'json', formatversion: 2, origin: '*' };
@@ -488,7 +509,7 @@ function fetchWM(b) {
       var ii = pg.imageinfo && pg.imageinfo[0]; if (!ii) return null;
       var m = ii.extmetadata || {};
       var title = cleanTitle(stripTags(m.ObjectName && m.ObjectName.value) || pg.title);
-      return withFlags(b, { code: 'W' + pg.pageid.toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
+      return withFlags(b, { code: 'W' + pg.pageid.toString(36).toUpperCase(), bucket: b.id, kind: b.kind, plain: plain,
                w: ii.width, h: ii.height, url: ii.thumburl || ii.url, title: title,
                cats: (m.Categories && m.Categories.value) || '',
                by: shortName(stripTags(m.Artist && m.Artist.value)),
@@ -498,10 +519,12 @@ function fetchWM(b) {
 }
 
 var cmaTotals = {};
+function pickVariant(vs) { var sum = 0, i; for (i = 0; i < vs.length; i++) sum += vs[i].w; var r = Math.random() * sum; for (i = 0; i < vs.length; i++) { r -= vs[i].w; if (r <= 0) return vs[i]; } return vs[0]; }
 function fetchCMA(b) {
-  var base = CMA + '?cc0=1&has_image=1&' + b.q + '&fields=id,title,creators,creation_date,images';
-  var total = cmaTotals[b.id] ? Promise.resolve(cmaTotals[b.id]) :
-    fetch(base + '&limit=1').then(function (r) { return r.json(); }).then(function (j) { return (cmaTotals[b.id] = j.info.total); });
+  var v = b.variants ? pickVariant(b.variants) : b, key = b.id + ':' + v.q;
+  var base = CMA + '?cc0=1&has_image=1&' + v.q + '&fields=id,title,creators,creation_date,images';
+  var total = cmaTotals[key] ? Promise.resolve(cmaTotals[key]) :
+    fetch(base + '&limit=1').then(function (r) { return r.json(); }).then(function (j) { return (cmaTotals[key] = j.info.total); });
   return total.then(function (t) {
     var skip = Math.floor(Math.random() * Math.max(1, t - 40));
     return fetch(base + '&limit=40&skip=' + skip);
@@ -511,7 +534,7 @@ function fetchCMA(b) {
       var who = (a.creators && a.creators[0] && a.creators[0].description) || '';
       who = who.replace(/\s*\(.*\)\s*$/, '');
       return withFlags(b, { code: 'C' + Number(a.id).toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
-               w: +im.width, h: +im.height, url: im.url, title: a.title || 'Untitled',
+               w: +im.width, h: +im.height, url: im.url, title: a.title || 'Untitled', plain: v.plain,
                by: shortName(who), year: a.creation_date || '',
                credit: [who, a.creation_date, 'Cleveland Museum of Art'].filter(Boolean).join(' · ') });
     }).filter(Boolean);
@@ -532,7 +555,7 @@ function fits(it) {
          !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
          !(it.kind === 'nature' && it.cats && NATURE_BAD.test(it.cats)) &&
          !(it.kind === 'animal' && it.cats && ANIMAL_BAD.test(it.cats)) &&
-         !(it.kind === 'art' && !sacred && it.bucket !== 'print' && it.bucket !== 'jpnt' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
+         !(it.kind === 'art' && !sacred && it.bucket !== 'world' && it.bucket !== 'worldw' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
          !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
@@ -574,6 +597,7 @@ function render(it) {
     var pp = placardParts(it), cap = document.createElement('div'); cap.className = 'placard';
     var t = document.createElement('span'); t.className = 't'; t.textContent = pp.t; cap.appendChild(t);
     if (pp.by) { var by = document.createElement('span'); by.className = 'by'; by.textContent = pp.by; cap.appendChild(by); }
+    if (pp.orig && pp.orig.length <= 24) { var og = document.createElement('span'); og.className = 'orig'; og.textContent = pp.orig; cap.appendChild(og); }
     var code = document.createElement('span'); code.className = 'code'; code.textContent = it.code; cap.appendChild(code);
     next.appendChild(cap);
     fitLabel(cap);
