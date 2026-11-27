@@ -383,9 +383,66 @@ function seasonLine() {
 function hourKey() { var h = new Date().getHours(); return h >= 5 && h < 10 ? 'morning' : h >= 17 && h < 21 ? 'evening' : (h >= 21 || h < 5) ? 'night' : null; }
 var HOUR_LINES = { morning: 'Morning light', evening: 'Evening', night: 'Night' };
 var WEATHER_LINES = { clear: 'Clear skies in Brea', cloudy: 'Clouds over Brea', fog: 'Fog in Brea', rain: 'Rain in Brea', snow: 'Snow in Brea' };
-function whySeason() { return { line: seasonLine(), mat: SEASON_MATS[seasonKey()] }; }
-function whyHour() { var k = hourKey(); return k ? { line: HOUR_LINES[k], mat: HOUR_MATS[k] } : null; }
-function whyWeather() { return wx ? { line: WEATHER_LINES[wx], mat: WEATHER_MATS[wx] } : null; }
+/* A piece only wears an occasion's mat and line when its own title or Commons categories show the subject fits.
+   Search engines match loosely (a museum hall can come back for "autumn"), so this is the check that keeps the frame honest. */
+var SEASON_FIT = { winter: /\b(snow\w*|winter\w*|frost\w*|hoarfrost|ice|icy|frozen)\b/i,
+  spring: /\b(spring|blossoms?|bloom\w*|tulips?|orchards?|cherry|meadows?|crocus\w*|daffodils?)\b/i,
+  summer: /\b(summer|beach\w*|sunflowers?|lavender|meadows?|fields?|seaside)\b/i,
+  autumn: /\b(autumn\w*|fall colou?rs?|fall foliage|foliage|harvest\w*|vineyards?|leaves|october|november|herbst|automne)\b/i };
+var HOUR_FIT = { morning: /\b(sunrise|dawn|morning|mist\w*|fog\w*|daybreak)\b/i,
+  evening: /\b(sunsets?|dusk|golden hour|evening|afterglow|twilight)\b/i,
+  night: /\b(night\w*|moon\w*|blue hour|stars?|starry|milky way|nocturne|lights)\b/i };
+var WEATHER_FIT = { clear: /\b(sun\w*|blue sky|clear|bright)\b/i, cloudy: /\b(clouds?|cloudy|overcast|cloudscape|sky)\b/i,
+  fog: /\b(fog\w*|mist\w*|haze|hazy)\b/i, rain: /\b(rain\w*|wet|drops?|umbrellas?|caf[eé]s?|library|reading room)\b/i,
+  snow: /\b(snow\w*|winter|blizzard)\b/i };
+function whySeason() { var k = seasonKey(); return { line: seasonLine(), mat: SEASON_MATS[k], fit: SEASON_FIT[k] }; }
+function whyHour() { var k = hourKey(); return k ? { line: HOUR_LINES[k], mat: HOUR_MATS[k], fit: HOUR_FIT[k] } : null; }
+function whyWeather() { return wx ? { line: WEATHER_LINES[wx], mat: WEATHER_MATS[wx], fit: WEATHER_FIT[wx] } : null; }
+
+var CHRISTIAN_ART = 'nativity|adoration|shepherds?|magi|bethlehem|annunciation|visitation|census|holy night|crib|manger|creche|presepe|krippe';
+var OCCASION_FIT = {
+  'Advent is coming': new RegExp('\\b(advent\\w*|christmas|weihnacht\\w*|wreath|candles?|' + CHRISTIAN_ART + ')\\b', 'i'),
+  'Advent': new RegExp('\\b(advent\\w*|christmas|weihnacht\\w*|wreath|candles?|' + CHRISTIAN_ART + ')\\b', 'i'),
+  'Christmas': new RegExp('\\b(christmas|xmas|weihnacht\\w*|no[eë]l|navidad|natale|' + CHRISTIAN_ART + ')\\b', 'i'),
+  'Christmastide': new RegExp('\\b(christmas|weihnacht\\w*|epiphany|flight into egypt|rest on the flight|candles?|candlelight|' + CHRISTIAN_ART + ')\\b', 'i'),
+  'New Year': /\b(fireworks?|new year\w*|silvester|hogmanay|sunrise|first light)\b/i,
+  'Lent': /\b(lent|desert|monaster\w*|abbey|chapel|stained glass|candles?|prodigal|samaritan|sermon on the mount|wilderness|fra angelico)\b/i,
+  'Holy Week': /\b(olive\w*|jerusalem|gethsemane|last supper|washing of the feet|entry into jerusalem|palm sunday|stained glass|chapel)\b/i,
+  'Easter': /\b(easter|resurrection|noli me tangere|emmaus|tomb|sepulchre|lil(y|ies)|eggs?)\b/i,
+  'Pentecost': /\b(pentecost|holy spirit|stained glass|rose window)\b/i,
+  'Martin Luther King Jr. Day': /\b(martin luther king|mlk|pettus|lincoln memorial|national mall|civil rights)\b/i,
+  'Black History Month': /\b(african american|harlem|tuskegee|howard university)\b/i,
+  'Valentine’s Day': /\b(roses?|paris|venice|venezia|seine|pont des arts|hearts?|valentine\w*)\b/i,
+  'St. Patrick’s Day': /\b(ireland|irish|dublin|moher|connemara|causeway|kerry|galway|shamrocks?)\b/i,
+  'First day of spring': /\b(spring|blossoms?|crocus\w*|bloom\w*|equinox|daffodils?)\b/i,
+  'Cherry blossom season': /\b(cherry|sakura|hanami|plum blossoms?|blossoms?)\b/i,
+  'Earth Day': /\b(earth|blue marble|rainforest|old-growth|national park|forest)\b/i,
+  'Mother’s Day': /\b(peon(y|ies)|roses?|gardens?|bouquets?|flowers)\b/i,
+  'Memorial Day': /\b(memorial|cemetery|monument|arlington|gettysburg|flag|covered bridge|barn|church)\b/i,
+  'Veterans Day': /\b(memorial|cemetery|monument|arlington|gettysburg|flag|veterans?)\b/i,
+  'Pride Month': /\b(rainbows?|stonewall|pride)\b/i,
+  'Juneteenth': /\b(juneteenth|emancipation|galveston|african american)\b/i,
+  'Father’s Day': /\b(lighthouses?|sailboats?|sailing|lake|national park)\b/i,
+  'First day of summer': /\b(midsummer|solstice|midnight sun|stonehenge|summer)\b/i,
+  'Independence Day': /\b(liberty|american flag|flags?|fireworks?|independence|rushmore|capitol|lincoln|washington|hudson|niagara|yosemite)\b/i,
+  'Labor Day': /\b(golden gate|brooklyn bridge|hoover dam|farms?|harvest\w*|wheat|hay\w*)\b/i,
+  'Hispanic Heritage Month': /\b(guanajuato|oaxaca|antigua|cartagena|san miguel|machu picchu|capistrano|mexic\w*|guatemala|colombia|peru)\b/i,
+  'First day of autumn': /\b(autumn\w*|equinox|harvest\w*|foliage|fall colou?rs?)\b/i,
+  'Autumn evenings': /\b(pumpkins?|autumn\w*|harvest moon|leaves|foliage)\b/i,
+  'Thanksgiving': /\b(thanksgiving|harvest\w*|pumpkins?|gourds?|squash|corn|cornfields?|maize|wheat|haystacks?|hay|sheaves|orchards?|apples?|cranberr\w*|cornucopia|autumn\w*|fall foliage|still life with fruit|fruit)\b/i,
+  'Longest night': /\b(solstice|newgrange|snow\w*|candle\w*)\b/i,
+  'Snow day': /\b(snow\w*|winter|blizzard)\b/i };
+function artistFit(list) {
+  // Whole names (first and last, either order), so "Thomas" alone never stands in for Alma Thomas.
+  var esc = function (w) { return w.replace(/[.*+?^${}()[\]\\]/g, '\\$&'); };
+  var pats = list.map(function (a) {
+    var w = a.split(/\s+/).filter(function (x) { return !/^(painter|flowers|cherry|blossom|plum|woodblock)$/i.test(x); }).map(esc);
+    if (w.length === 1) return w[0];
+    var f = w[0], l = w[w.length - 1];
+    return f + '\\s+(?:\\S+\\s+){0,2}' + l + '|' + l + ',\\s*' + f;
+  });
+  return new RegExp('\\b(?:' + pats.join('|') + ')\\b', 'i');
+}
 
 function holidayBucket() {
   var o = pickObservance(); if (!o) return null;
@@ -394,8 +451,9 @@ function holidayBucket() {
   if (o.art) ways.push('art');
   if (o.artists) ways.push('artists', 'artists');
   var way = ways[Math.floor(Math.random() * ways.length)];
-  var b = { id: 'hol', name: o.name, src: 'wm', darkOK: true, blueOK: true, allowPeople: o.allowPeople, memorial: o.memorial, obs: o.name,
-            why: { line: occasionLine(o), mat: OCCASION_MATS[o.name] || null } };
+  var fit = way === 'artists' ? artistFit(o.artists) : OCCASION_FIT[o.name] || null;
+  var b = { id: 'hol', name: o.name, src: 'wm', darkOK: true, blueOK: true, allowPeople: o.allowPeople, memorial: o.memorial, obs: o.name, mustFit: true,
+            why: { line: occasionLine(o), mat: OCCASION_MATS[o.name] || null, fit: fit } };
   if (way === 'photo') { b.kind = 'nature'; b.q = Math.random() < .5 ? FP : QI.replace('fileh:>2400', 'fileh:>2000'); b.terms = o.photo; }
   else if (way === 'art') { b.kind = 'art'; b.q = GAP; b.terms = o.art; }
   else { b.kind = 'art'; b.q = '{t} fileh:>1500 filetype:bitmap -portrait -"self-portrait"'; b.terms = o.artists; }
@@ -492,7 +550,12 @@ function latinOnly(x) {
 }
 function withFlags(b, it) {
   it.blueOK = b.blueOK; it.darkOK = b.darkOK; it.allowPeople = b.allowPeople; it.memorial = b.memorial; if (b.obs) it.obs = b.obs;
-  var why = b.why || (b.whyFn && b.whyFn()); if (why) it.why = why;
+  var why = b.why || (b.whyFn && b.whyFn());
+  if (why) {
+    var text = [it.title, it.by, it.cats].join(' ');
+    if (!why.fit || why.fit.test(text)) it.why = why;
+    else if (b.mustFit) it.misfit = true;   // a calendar draw that turned up something off-subject: skip it
+  }
   return it;
 }
 function fetchWM(b) {
@@ -556,7 +619,7 @@ function fits(it) {
          !(it.kind === 'nature' && it.cats && NATURE_BAD.test(it.cats)) &&
          !(it.kind === 'animal' && it.cats && ANIMAL_BAD.test(it.cats)) &&
          !(it.kind === 'art' && !sacred && it.bucket !== 'world' && it.bucket !== 'worldw' && GAME_WORDS.test(it.title + ' ' + (it.cats || ''))) &&
-         !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
+         !it.misfit && !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
   if (filling || queue.length >= 8) return;
