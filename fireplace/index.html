@@ -354,7 +354,7 @@ var SCENES = [
   {
     name: 'Brick hearth',
     open: { x: 0.17, y: 0.405, w: 0.66, h: 0.47 },
-    fire: { base: 0.165, h: 0.6, bed: 0.68, lobes: 4.0, blue: 0.0, sparks: 1.0, speed: 1.0 },
+    fire: { base: 0.165, h: 0.72, bed: 0.68, lobes: 4.0, blue: 0.0, sparks: 1.0, speed: 1.0 },
     light: [50, 78, 70],
     draw: function (b, f, g, W, H, R) {
       var O = px(this.open, W, H), rise = H * 0.075, cx = O.x + O.w / 2;
@@ -403,7 +403,7 @@ var SCENES = [
   {
     name: 'Fieldstone',
     open: { x: 0.15, y: 0.43, w: 0.70, h: 0.43 },
-    fire: { base: 0.17, h: 0.62, bed: 0.72, lobes: 4.5, blue: 0.0, sparks: 1.1, speed: 1.0 },
+    fire: { base: 0.17, h: 0.72, bed: 0.72, lobes: 4.5, blue: 0.0, sparks: 1.1, speed: 1.0 },
     light: [50, 78, 72],
     draw: function (b, f, g, W, H, R) {
       var O = px(this.open, W, H), cx = O.x + O.w / 2;
@@ -513,7 +513,7 @@ var SCENES = [
   {
     name: 'Just the fire',
     open: { x: 0, y: 0, w: 1, h: 1 },
-    fire: { base: 0.12, h: 0.7, bed: 0.98, lobes: 5.5, blue: 0.0, sparks: 1.6, speed: 0.95 },
+    fire: { base: 0.12, h: 0.85, bed: 0.98, lobes: 5.5, blue: 0.0, sparks: 1.6, speed: 0.95 },
     light: [50, 90, 60],
     draw: function (b, f, g, W, H, R) {
       var bg = b.createLinearGradient(0, 0, 0, H);
@@ -593,10 +593,10 @@ function shelfItems(c, R, x, y, w, h, wall) {
       var lw = h * 0.1, lh = h * (0.7 + R() * 0.15), la = 0.28;
       c.save(); c.translate(cx + lh * Math.sin(la), bottom); c.rotate(-la); c.fillStyle = shade(pick(R, BOOKS), 0.85 + R() * 0.2); c.fillRect(-lw, -lh, lw, lh); c.restore();
       cx += lh * Math.sin(la) + h * 0.02; leaned = true;
-    } else if (r < 0.28) {
-      cx += h * (0.08 + R() * 0.2);
+    } else if (r < 0.255) {
+      cx += h * (0.05 + R() * 0.12);
     } else {
-      var bw = h * (0.07 + R() * 0.08), bh = h * (0.6 + R() * 0.3), col = pick(R, BOOKS), f = 0.8 + R() * 0.3;
+      var bw = h * (0.065 + R() * 0.07), bh = h * (0.66 + R() * 0.28), col = pick(R, BOOKS), f = 0.8 + R() * 0.3;
       if (cx + bw > left) break;
       var g = c.createLinearGradient(cx, 0, cx + bw, 0);
       g.addColorStop(0, shade(col, f * 0.75)); g.addColorStop(0.4, shade(col, f * 1.05)); g.addColorStop(1, shade(col, f * 0.7));
@@ -745,7 +745,7 @@ function libraryScene(withCat) {
   return {
     name: withCat ? 'The library, with the cat' : 'The library',
     open: { x: 0.32, y: 0.575, w: 0.36, h: 0.27 },
-    fire: { base: 0.17, h: 0.62, bed: 0.72, lobes: 3.6, blue: 0.0, sparks: 0.9, speed: 1.0 },
+    fire: { base: 0.17, h: 0.74, bed: 0.74, lobes: 3.6, blue: 0.0, sparks: 0.9, speed: 1.0 },
     light: [50, 75, 75],
     cat: withCat ? { x: 0.52, y: 0.845, w: 0.42, h: 0.13 } : null,
     draw: function (b, f, g, W, H, R) {
@@ -863,7 +863,8 @@ function drawScene() {
     fireC.style.display = 'block';
     fireC.style.left = O.x + 'px'; fireC.style.top = O.y + 'px'; fireC.style.width = O.w + 'px'; fireC.style.height = O.h + 'px';
     var q = Math.min(0.42, 420 / Math.max(O.w, 1));
-    fireC.width = Math.max(64, Math.round(O.w * q)); fireC.height = Math.max(64, Math.round(O.h * q));
+    if (!gl) q *= 0.5;
+    fireC.width = Math.max(48, Math.round(O.w * q)); fireC.height = Math.max(48, Math.round(O.h * q)); fb = null;
     if (gl) gl.viewport(0, 0, fireC.width, fireC.height);
   } else fireC.style.display = 'none';
   var catC = document.getElementById('cat');
@@ -886,9 +887,9 @@ var FS = [
   '  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y); }',
   'float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; } return v; }',
   'vec3 ramp(float v){',
-  '  vec3 c = mix(vec3(0.18, 0.015, 0.0), vec3(0.92, 0.22, 0.02), smoothstep(0.0, 0.32, v));',
-  '  c = mix(c, vec3(1.0, 0.56, 0.10), smoothstep(0.28, 0.62, v));',
-  '  c = mix(c, vec3(1.0, 0.86, 0.52), smoothstep(0.62, 0.95, v));',
+  '  vec3 c = mix(vec3(0.18, 0.015, 0.0), vec3(0.92, 0.20, 0.02), smoothstep(0.0, 0.32, v));',
+  '  c = mix(c, vec3(1.0, 0.56, 0.10), smoothstep(0.3, 0.7, v));',
+  '  c = mix(c, vec3(1.0, 0.86, 0.52), smoothstep(0.72, 1.0, v));',
   '  return c; }',
   'void main(){',
   '  vec2 uv = gl_FragCoord.xy / uRes;',
@@ -899,16 +900,18 @@ var FS = [
   '  vec2 s = vec2(x * 1.35 * uBed * asp * 2.2, y * 1.9);',
   '  float n1 = fbm(s + vec2(0.0, -t * 1.25));',
   '  float n2 = fbm(s * vec2(2.2, 1.6) + vec2(5.3, -t * 2.1) + n1 * 1.1);',
-  '  float xw = x + (n1 - 0.5) * 0.5 * clamp(y, 0.0, 1.5);',
-  '  float prof = 1.0 - smoothstep(0.5, 1.0, abs(xw));',
-  '  float lob = 0.5 + 0.5 * cos(xw * 3.14159 * uLobes * 0.5 + n1 * 3.0 + sin(t * 0.37) * 0.8);',
-  '  float hgt = prof * (0.45 + 0.55 * lob) * (0.85 + 0.3 * n1);',
-  '  float v = (hgt - y) * 2.3 + (n2 - 0.5) * 1.5 * clamp(y * 1.4 + 0.25, 0.0, 1.4);',
-  '  v *= smoothstep(-0.06, 0.03, y);',
+  '  float n3 = fbm(vec2(x * 1.6 * uBed * asp * 2.2 + 7.1, t * 0.55));',
+  '  float xw = x + (n1 - 0.5) * 0.6 * clamp(y, 0.0, 1.5);',
+  '  float prof = 1.0 - smoothstep(0.45, 1.0, abs(xw));',
+  '  float lob = 0.5 + 0.5 * cos(xw * 3.14159 * uLobes * 0.5 + n3 * 5.0);',
+  '  float lob2 = 0.5 + 0.5 * cos(xw * 3.14159 * uLobes * 1.1 + n1 * 4.0 + 1.3);',
+  '  float hgt = prof * (0.25 + 0.5 * lob + 0.25 * lob2) * (0.6 + 0.75 * n3);',
+  '  float v = (hgt - y) * 1.55 + (n2 - 0.5) * 2.1 * clamp(y * 1.3 + 0.3, 0.0, 1.4);',
+  '  v *= smoothstep(-0.05, 0.06, y);',
   '  v = clamp(v, 0.0, 1.0);',
   '  vec3 col = ramp(v);',
   '  col = mix(col, vec3(0.25, 0.4, 1.0), uBlue * (1.0 - smoothstep(0.0, 0.1, y)) * smoothstep(0.15, 0.5, v) * 0.75);',
-  '  float a = smoothstep(0.0, 0.22, v);',
+  '  float a = smoothstep(0.0, 0.4, v);',
   '  vec4 o = vec4(col * a, a);',
   /* Glowing bed of embers along the base. */
   '  float bed = (1.0 - smoothstep(0.0, 0.09, abs(y + 0.01))) * (1.0 - smoothstep(0.7, 1.02, abs(x)));',
@@ -947,23 +950,46 @@ function initGL() {
   var loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   ['uRes', 'uT', 'uBase', 'uH', 'uBed', 'uLobes', 'uBlue', 'uSparks', 'uSpeed'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 }
-/* Without WebGL: a simple soft fallback made of glowing blobs. */
+/* Without WebGL: the same fire worked out on the processor, at a lower resolution. */
 var fb = null;
+function fhash(x, y) { x = x * 123.34; x -= Math.floor(x); y = y * 456.21; y -= Math.floor(y); var d = x * (x + 45.32) + y * (y + 45.32); x += d; y += d; var p = x * y; return p - Math.floor(p); }
+function fnoise(x, y) {
+  var ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+  var a = fhash(ix, iy), b = fhash(ix + 1, iy), c = fhash(ix, iy + 1), d = fhash(ix + 1, iy + 1);
+  return (a + (b - a) * ux) * (1 - uy) + (c + (d - c) * ux) * uy;
+}
+function ffbm(x, y, oct) { var v = 0, a = 0.5; for (var i = 0; i < oct; i++) { v += a * fnoise(x, y); x = x * 2.03 + 1.7; y = y * 2.03 + 9.2; a *= 0.5; } return v; }
+function sstep(e0, e1, x) { var q = (x - e0) / (e1 - e0); q = q < 0 ? 0 : q > 1 ? 1 : q; return q * q * (3 - 2 * q); }
 function drawFallbackFire(t, F, size) {
-  if (!fb) fb = { c: fireC.getContext('2d'), p: [] };
-  var c = fb.c, w = fireC.width, h = fireC.height;
-  c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, w, h);
-  c.globalCompositeOperation = 'lighter';
-  while (fb.p.length < 90) fb.p.push({ x: 0.5 + (Math.random() - 0.5) * F.bed * 0.9, y: 0, v: 0.004 + Math.random() * 0.006, life: Math.random() });
-  for (var i = 0; i < fb.p.length; i++) {
-    var p = fb.p[i]; p.life += p.v * 1.6; p.y = p.life * F.h * size;
-    if (p.life > 1) { p.life = 0; p.x = 0.5 + (Math.random() - 0.5) * F.bed * 0.9; }
-    var px1 = (p.x + Math.sin(t * 3 + i) * 0.01 * p.life) * w, py = h * (1 - F.base) - p.y * h, r = w * 0.09 * (1 - p.life * 0.7);
-    var g = c.createRadialGradient(px1, py, 0, px1, py, r);
-    var a = (1 - p.life) * 0.35;
-    g.addColorStop(0, 'rgba(255,200,120,' + a + ')'); g.addColorStop(0.5, 'rgba(255,110,30,' + a * 0.6 + ')'); g.addColorStop(1, 'rgba(200,40,0,0)');
-    c.fillStyle = g; c.fillRect(px1 - r, py - r, r * 2, r * 2);
+  var w = fireC.width, h = fireC.height;
+  if (!fb || fb.w !== w || fb.h !== h) { var cx = fireC.getContext('2d'); fb = { c: cx, w: w, h: h, img: cx.createImageData(w, h) }; }
+  var d = fb.img.data, asp = w / h, H = F.h * size; t *= F.speed;
+  for (var j = 0; j < h; j++) {
+    var uy = 1 - (j + 0.5) / h, y = (uy - F.base) / H, row = j * w * 4;
+    for (var i = 0; i < w; i++) {
+      var o = row + i * 4, x = ((i + 0.5) / w - 0.5) / (F.bed * 0.5);
+      if (y > 1.6 || y < -0.15 || Math.abs(x) > 1.15) { d[o + 3] = 0; continue; }
+      var sx = x * 1.35 * F.bed * asp * 2.2, sy = y * 1.9;
+      var n1 = ffbm(sx, sy - t * 1.25, 4), n2 = ffbm(sx * 2.2 + 5.3 + n1 * 1.1, sy * 1.6 - t * 2.1 + n1 * 1.1, 3), n3 = ffbm(x * 1.6 * F.bed * asp * 2.2 + 7.1, t * 0.55, 3);
+      var xw = x + (n1 - 0.5) * 0.6 * Math.max(0, Math.min(1.5, y));
+      var prof = 1 - sstep(0.45, 1, Math.abs(xw));
+      var hgt = prof * (0.25 + 0.5 * (0.5 + 0.5 * Math.cos(xw * Math.PI * F.lobes * 0.5 + n3 * 5)) + 0.25 * (0.5 + 0.5 * Math.cos(xw * Math.PI * F.lobes * 1.1 + n1 * 4 + 1.3))) * (0.6 + 0.75 * n3);
+      var v = (hgt - y) * 1.55 + (n2 - 0.5) * 2.1 * Math.max(0, Math.min(1.4, y * 1.3 + 0.3));
+      v *= sstep(-0.05, 0.06, y); v = v < 0 ? 0 : v > 1 ? 1 : v;
+      var k1 = sstep(0, 0.32, v), k2 = sstep(0.3, 0.7, v), k3 = sstep(0.72, 1, v);
+      var r = 0.18 + 0.74 * k1, g = 0.015 + 0.185 * k1, b = 0.02 * k1;
+      r += (1 - r) * k2; g += (0.56 - g) * k2; b += (0.1 - b) * k2;
+      g += (0.86 - g) * k3; b += (0.52 - b) * k3;
+      var a = sstep(0, 0.4, v);
+      var bed = (1 - sstep(0, 0.09, Math.abs(y + 0.01))) * (1 - sstep(0.7, 1.02, Math.abs(x)));
+      if (bed > 0) bed *= 0.35 + 0.9 * fnoise(x * 5 * F.bed * asp, t * 0.25);
+      var A = Math.max(a, bed * 0.85);
+      if (A <= 0.003) { d[o + 3] = 0; continue; }
+      var e = bed * (1 - a) * 0.9;
+      d[o] = Math.min(255, (r * a + e) / A * 255); d[o + 1] = Math.min(255, (g * a + 0.36 * e) / A * 255); d[o + 2] = Math.min(255, (b * a + 0.05 * e) / A * 255); d[o + 3] = A * 255;
+    }
   }
+  fb.c.putImageData(fb.img, 0, 0);
 }
 
 /* ---------- Candle flames ---------- */
@@ -972,9 +998,9 @@ function drawFlames(t) {
   var c = fxC.getContext('2d');
   c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   var fl = scene.flames || [];
-  for (var i = 0; i < fl.length; i++) {
+  for (var i = 0; i < fl.length; i++) if (fl[i].lastBox) c.clearRect(fl[i].lastBox[0], fl[i].lastBox[1], fl[i].lastBox[2], fl[i].lastBox[3]);
+  for (i = 0; i < fl.length; i++) {
     var F = fl[i], h = F.s * 1.9, R2 = h * 3.2;
-    if (F.lastBox) c.clearRect(F.lastBox[0], F.lastBox[1], F.lastBox[2], F.lastBox[3]);
     var ph = i * 1.7;
     var gust = Math.sin(t * 0.7 + ph) * Math.sin(t * 0.23 + ph * 2);
     var k = 1 + 0.07 * Math.sin(t * 7.1 + ph) + 0.05 * Math.sin(t * 12.7 + ph * 3) + 0.06 * gust;
@@ -1343,6 +1369,7 @@ document.addEventListener('mousemove', function () {
 });
 
 initGL();
+if (/debug/.test(location.hash)) setTimeout(function () { toast(gl ? 'Fire: WebGL' : 'Fire: simple mode', 'size ' + fireC.width + 'x' + fireC.height); }, 1200);
 layout();
 setTimeout(function () { fadeEl.classList.add('clear'); }, 80);
 requestAnimationFrame(frameLoop);
