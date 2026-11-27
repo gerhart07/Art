@@ -13,7 +13,7 @@ var P = new URLSearchParams(location.search), g = document.getElementById('g');
 var api = 'https://commons.wikimedia.org/w/api.php?origin=*&format=json&formatversion=2&action=query&prop=imageinfo&iiprop=size|url&iiurlwidth=260';
 var off = +(P.get('o') || 0), n = +(P.get('n') || 50);
 var url = P.get('t') ? api + '&titles=' + encodeURIComponent(P.get('t').split('|').map(function(t){return 'File:'+t}).join('|'))
-  : api + '&generator=search&gsrnamespace=6&gsrlimit=' + n + '&gsroffset=' + off + '&gsrsearch=' + encodeURIComponent(P.get('q'));
+  : api + '&generator=search&gsrnamespace=6&gsrlimit=' + n + '&gsroffset=' + off + '&gsrsearch=' + encodeURIComponent(P.get('q') + ' filetype:bitmap');
 fetch(url).then(function(r){return r.json()}).then(function(d){
   var pages = (d.query && d.query.pages || []).filter(function(p){return p.imageinfo});
   pages.sort(function(a,b){return (a.index||0)-(b.index||0)});
@@ -21,8 +21,8 @@ fetch(url).then(function(r){return r.json()}).then(function(d){
   document.title = 'Picker ' + pages.length;
   pages.forEach(function(p,i){var ii=p.imageinfo[0];
     var c=document.createElement('div');c.className='c';
-    c.innerHTML='<div class="b"><img src="'+ii.thumburl+'"><span class="n">'+(off+i)+'</span></div><div class="t"></div>';
-    c.querySelector('.t').textContent=(ii.height/ii.width).toFixed(2)+' '+p.title.slice(5);
+    c.innerHTML='<div class="b"><img alt="" src="'+ii.thumburl+'"><span class="n">'+(off+i)+'</span></div><div class="t"></div>';
+    c.querySelector('.t').textContent=p.title.slice(5,40);c.querySelector('.t').setAttribute('aria-hidden','true');
     g.appendChild(c);});
   var pre=document.createElement('pre');pre.id='list';pre.style.cssText='white-space:pre-wrap;font-size:9px;color:#888';pre.textContent=LIST.join('\n');document.body.appendChild(pre);
 });
