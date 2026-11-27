@@ -63,6 +63,12 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
 .placard .code { font-family: var(--label); }
 .placard.tight .code { display: none; }
 .placard .code { opacity: .6; font-size: .6em; font-weight: 500; letter-spacing: .08em; flex-shrink: 0; }
+/* The one quiet line in the top mat that says why a piece is up today. */
+.reason { position: absolute; left: var(--mat); right: var(--mat); top: 0; height: var(--mat); display: flex; align-items: center; justify-content: center;
+  white-space: nowrap; overflow: hidden; font-family: var(--card); font-weight: 400; font-size: max(12px, calc(var(--mat) * .4)); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--label-ink); opacity: 0; transition: opacity 1.2s ease; }
+body.labels-always .slide.on .reason, body.labels-brief .slide.on.fresh .reason { opacity: .9; }
+body.toasting .slide .reason { opacity: 0; }
 /* Late at night the pictures dim a little, so the room stays calm. */
 body.night .window img { filter: brightness(.82); }
 #focus { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -185,10 +191,10 @@ var BUCKETS = [
   { id: 'anim',  cat: 'Animals', name: 'Artful animals', kind: 'animal', src: 'wm', q: FP, terms: ANIMALS, blueOK: true, w: 5 },
 
   // Moments: these only join the mix when the season, time of day, weather or a holiday calls for them.
-  { id: 'season',  cat: 'Season', name: 'The season', kind: 'photo', src: 'wm', q: FP, dyn: function () { return seasonTerms(); }, w: 6 },
-  { id: 'seasonA', cat: 'Season', name: 'The season', kind: 'art',   src: 'wm', q: GAP + NOPEOPLE, dyn: function () { return seasonTerms(); }, w: 4 },
-  { id: 'hour',    cat: 'Time of day', name: 'Time of day', kind: 'photo', src: 'wm', q: FP, dyn: function () { return hourTerms(); }, darkOK: true, blueOK: true, w: 7 },
-  { id: 'weather', cat: 'Weather', name: 'Today’s weather', kind: 'photo', src: 'wm', q: FP, dyn: function () { return weatherTerms(); }, blueOK: true, darkOK: true, w: 7 },
+  { id: 'season',  cat: 'Season', name: 'The season', kind: 'photo', src: 'wm', q: FP, dyn: function () { return seasonTerms(); }, whyFn: whySeason, w: 6 },
+  { id: 'seasonA', cat: 'Season', name: 'The season', kind: 'art',   src: 'wm', q: GAP + NOPEOPLE, dyn: function () { return seasonTerms(); }, whyFn: whySeason, w: 4 },
+  { id: 'hour',    cat: 'Time of day', name: 'Time of day', kind: 'photo', src: 'wm', q: FP, dyn: function () { return hourTerms(); }, whyFn: whyHour, darkOK: true, blueOK: true, w: 7 },
+  { id: 'weather', cat: 'Weather', name: 'Today’s weather', kind: 'photo', src: 'wm', q: FP, dyn: function () { return weatherTerms(); }, whyFn: whyWeather, blueOK: true, darkOK: true, w: 7 },
   { id: 'hol', cat: 'Calendar', name: 'The calendar', src: 'hol', kind: 'art', darkOK: true, blueOK: true, w: 0 }
 ];
 
@@ -314,6 +320,62 @@ function pickObservance() {
   return list[0];
 }
 /* One draw from the calendar: a photo, a painting on the theme, or work by the artists the observance honors. */
+/* ---------- Why this picture: a colored mat and one quiet line for pieces chosen for the day ---------- */
+function tone(c, b, i) { return { c: c, b: b, i: i }; }
+var LIGHT = '#f4eee5', DARK = '#1f1813';
+var OCCASION_MATS = {
+  'Advent is coming': tone('#4a3d55', '#7a6b86', LIGHT), 'Advent': tone('#4a3d55', '#7a6b86', LIGHT),
+  'Christmas': tone('#2f4a3d', '#5d7a6a', LIGHT), 'Christmastide': tone('#2f4a3d', '#5d7a6a', LIGHT),
+  'New Year': tone('#262d3d', '#4f5a70', LIGHT), 'Lent': tone('#55495e', '#807488', LIGHT), 'Holy Week': tone('#4b3a46', '#776470', LIGHT),
+  'Easter': tone('#e9dfc4', '#f7f1e0', '#2a2216'), 'Pentecost': tone('#7a3b33', '#a46a5f', LIGHT),
+  'Martin Luther King Jr. Day': tone('#5b4632', '#86705a', LIGHT), 'Black History Month': tone('#5b4632', '#86705a', LIGHT),
+  'Valentine’s Day': tone('#c9a3a0', '#e6cdca', '#2a1a18'), 'Women’s History Month': tone('#6a4f63', '#94798c', LIGHT),
+  'St. Patrick’s Day': tone('#9fae8f', '#c7d1ba', '#1d2418'), 'First day of spring': tone('#c9d2bd', '#e3e9d9', DARK),
+  'Cherry blossom season': tone('#e3cfcf', '#f3e6e6', '#2a1c1c'), 'Earth Day': tone('#a9b59a', '#ccd5c0', '#1b2116'),
+  'Asian American and Pacific Islander Heritage Month': tone('#3e4a63', '#68738c', LIGHT), 'Mother’s Day': tone('#dcc3bd', '#efe1dd', '#2a1c18'),
+  'Memorial Day': tone('#2f3b4f', '#5b6679', LIGHT), 'Veterans Day': tone('#2f3b4f', '#5b6679', LIGHT),
+  'Pride Month': tone('#b9a8c9', '#dad0e3', '#221a2a'), 'Juneteenth': tone('#6b3a2e', '#94655a', LIGHT), 'Father’s Day': tone('#4e5a63', '#78848c', LIGHT),
+  'First day of summer': tone('#d9c39a', '#ece0c6', DARK), 'Independence Day': tone('#26324a', '#56637d', LIGHT), 'Labor Day': tone('#4d5f75', '#78899d', LIGHT),
+  'Hispanic Heritage Month': tone('#a65f45', '#c98b73', LIGHT), 'First day of autumn': tone('#8a5236', '#b07c62', LIGHT),
+  'Autumn evenings': tone('#8a5236', '#b07c62', LIGHT), 'Thanksgiving': tone('#8f6a3a', '#b8946a', LIGHT),
+  'Longest night': tone('#232a38', '#4b5466', LIGHT), 'Snow day': tone('#dfe4e6', '#f1f4f5', DARK)
+};
+var SEASON_MATS = { winter: tone('#cfd4d6', '#e8ebec', DARK), spring: tone('#c9d2bd', '#e3e9d9', DARK), summer: tone('#dccfae', '#eee5cf', DARK), autumn: tone('#b9967a', '#d6bca6', '#1f1610') };
+var HOUR_MATS = { morning: tone('#e6d6c6', '#f4ebe1', DARK), evening: tone('#9c7b63', '#c0a18a', '#fbf5ec'), night: tone('#2b2f3a', '#535868', LIGHT) };
+var WEATHER_MATS = { clear: tone('#c7d3dc', '#e2e9ee', DARK), cloudy: tone('#b9bcbd', '#d9dbdc', DARK), fog: tone('#d6d6d1', '#ebebe7', DARK),
+  rain: tone('#6f7d86', '#97a3ab', LIGHT), snow: tone('#e3e7e9', '#f3f5f6', DARK) };
+var ORD = ['first', 'second', 'third', 'fourth'];
+function occasionLine(o, now) {
+  now = now || new Date();
+  var y = now.getFullYear(), t = new Date(y, now.getMonth(), now.getDate()), xmas = new Date(y, 11, 25);
+  var advent = days(xmas, -(xmas.getDay() || 7) - 21), ea = easter(y), thanks = nthWeekday(y, 10, 4, 4);
+  var same = function (d) { return d.getTime() === t.getTime(); };
+  switch (o.name) {
+    case 'Advent is coming': var left = Math.round((advent - t) / 864e5); return left === 1 ? 'Advent begins tomorrow' : 'Advent begins Sunday';
+    case 'Advent': return same(advent) ? 'The first Sunday of Advent' : 'Advent, ' + ORD[Math.min(3, Math.floor((t - advent) / (7 * 864e5)))] + ' week';
+    case 'Christmas': return now.getDate() === 24 ? 'Christmas Eve' : now.getDate() === 25 ? 'Christmas Day' : 'Christmas';
+    case 'Christmastide': return now.getMonth() === 0 && now.getDate() === 6 ? 'Epiphany' : 'The twelve days of Christmas';
+    case 'Easter': return same(ea) ? 'Easter Sunday' : 'Easter week';
+    case 'Holy Week': return same(days(ea, -7)) ? 'Palm Sunday' : same(days(ea, -3)) ? 'Maundy Thursday' : 'Holy Week';
+    case 'Lent': return same(days(ea, -46)) ? 'Ash Wednesday' : 'Lent';
+    case 'Thanksgiving': return same(thanks) ? 'Thanksgiving Day' : 'Thanksgiving week';
+    case 'Independence Day': return now.getMonth() === 6 && now.getDate() === 4 ? 'The Fourth of July' : 'Independence Day';
+    case 'Snow day': return 'Snow in Brea';
+  }
+  return o.name;
+}
+function seasonKey(now) { var m = (now || new Date()).getMonth(); return m === 11 || m <= 1 ? 'winter' : m <= 4 ? 'spring' : m <= 7 ? 'summer' : 'autumn'; }
+function seasonLine() {
+  var m = new Date().getMonth();
+  return ['Midwinter', 'Late winter', 'Early spring', 'Spring', 'Late spring', 'Early summer', 'Midsummer', 'Late summer', 'Early autumn', 'Autumn', 'Late autumn', 'Early winter'][m];
+}
+function hourKey() { var h = new Date().getHours(); return h >= 5 && h < 10 ? 'morning' : h >= 17 && h < 21 ? 'evening' : (h >= 21 || h < 5) ? 'night' : null; }
+var HOUR_LINES = { morning: 'Morning light', evening: 'Evening', night: 'Night' };
+var WEATHER_LINES = { clear: 'Clear skies in Brea', cloudy: 'Clouds over Brea', fog: 'Fog in Brea', rain: 'Rain in Brea', snow: 'Snow in Brea' };
+function whySeason() { return { line: seasonLine(), mat: SEASON_MATS[seasonKey()] }; }
+function whyHour() { var k = hourKey(); return k ? { line: HOUR_LINES[k], mat: HOUR_MATS[k] } : null; }
+function whyWeather() { return wx ? { line: WEATHER_LINES[wx], mat: WEATHER_MATS[wx] } : null; }
+
 function holidayBucket() {
   var o = pickObservance(); if (!o) return null;
   var ways = [];
@@ -321,7 +383,8 @@ function holidayBucket() {
   if (o.art) ways.push('art');
   if (o.artists) ways.push('artists', 'artists');
   var way = ways[Math.floor(Math.random() * ways.length)];
-  var b = { id: 'hol', name: o.name, src: 'wm', darkOK: true, blueOK: true, allowPeople: o.allowPeople, memorial: o.memorial, obs: o.name };
+  var b = { id: 'hol', name: o.name, src: 'wm', darkOK: true, blueOK: true, allowPeople: o.allowPeople, memorial: o.memorial, obs: o.name,
+            why: { line: occasionLine(o), mat: OCCASION_MATS[o.name] || null } };
   if (way === 'photo') { b.kind = 'nature'; b.q = Math.random() < .5 ? FP : QI.replace('fileh:>2400', 'fileh:>2000'); b.terms = o.photo; }
   else if (way === 'art') { b.kind = 'art'; b.q = GAP; b.terms = o.art; }
   else { b.kind = 'art'; b.q = '{t} fileh:>1500 filetype:bitmap -portrait -"self-portrait"'; b.terms = o.artists; }
@@ -405,6 +468,7 @@ function placardParts(it) {
 }
 function withFlags(b, it) {
   it.blueOK = b.blueOK; it.darkOK = b.darkOK; it.allowPeople = b.allowPeople; it.memorial = b.memorial; if (b.obs) it.obs = b.obs;
+  var why = b.why || (b.whyFn && b.whyFn()); if (why) it.why = why;
   return it;
 }
 function fetchWM(b) {
@@ -495,7 +559,12 @@ function render(it) {
     if (wm && !toneOK(img, it.blueOK, it.darkOK)) { seenSet[it.code] = 1; state.seen.push(it.code); forward(); return; }
     var next = slides[1 - cur];
     next.innerHTML = '';
+    next.removeAttribute('style');
     next.className = 'slide ' + (it.kind === 'art' ? 'art' : 'photo');
+    if (it.why && it.why.mat) {
+      next.style.setProperty('--mat-color', it.why.mat.c); next.style.setProperty('--bevel', it.why.mat.b); next.style.setProperty('--label-ink', it.why.mat.i);
+    }
+    if (it.why && it.why.line) { var rs = document.createElement('div'); rs.className = 'reason'; rs.textContent = it.why.line; next.appendChild(rs); }
     var win = document.createElement('div'); win.className = 'window'; img.className = ''; win.appendChild(img); next.appendChild(win);
     var pp = placardParts(it), cap = document.createElement('div'); cap.className = 'placard';
     var t = document.createElement('span'); t.className = 't'; t.textContent = pp.t; cap.appendChild(t);
@@ -615,8 +684,8 @@ var toastEl = document.getElementById('toast'), toastTimer;
 function toast(msg, sub) {
   toastEl.textContent = msg;
   if (sub) { var s = document.createElement('small'); s.textContent = sub; toastEl.appendChild(s); }
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1600);
+  toastEl.classList.add('show'); document.body.classList.add('toasting');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); document.body.classList.remove('toasting'); }, 1600);
 }
 var statusEl = document.getElementById('status');
 function status(msg) { statusEl.textContent = msg; }
