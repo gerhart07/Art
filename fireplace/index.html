@@ -32,7 +32,9 @@ body.idle, body.idle * { cursor: none !important; }
 #stage.turn-right { width: 100vh; height: 100vw; transform: translate(-50%,-50%) rotate(90deg); }
 #stage video.clip { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.6s linear; background: #000; }
 #stage video.clip.show { opacity: 1; }
-#dim, #fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; background: #000; }
+#dip, #dim, #fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; background: #000; }
+#dip { opacity: 0; transition: opacity .8s ease; }
+#dip.on { opacity: .55; }
 #dim { opacity: 0; transition: opacity 1.2s ease; }
 #fade { opacity: 1; transition: opacity .8s ease; }
 #fade.clear { opacity: 0; }
@@ -66,7 +68,7 @@ body.idle, body.idle * { cursor: none !important; }
 <div id="space"></div>
 <div id="stage">
   <video class="clip" id="va" muted playsinline preload="auto"></video>
-  <video class="clip" id="vb" muted playsinline preload="auto"></video>
+  <div id="dip"></div>
   <div id="dim"></div>
   <div id="fade"></div>
   <div id="hint">
@@ -82,14 +84,13 @@ body.idle, body.idle * { cursor: none !important; }
 <script>
 (function () {
 'use strict';
-var XF = 1.6; /* seconds of crossfade when a clip loops into itself */
 var DIMS = [{ name: 'full', a: 0 }, { name: 'softer', a: .25 }, { name: 'low', a: .45 }, { name: 'night', a: .65 }];
 var state = { clip: 0, crackle: true, music: false, dim: 0, rotate: 'none' };
 try { var s = JSON.parse(localStorage.getItem('fireplace-clips') || '{}'); for (var k in s) state[k] = s[k]; } catch (e) {}
 function save() { try { localStorage.setItem('fireplace-clips', JSON.stringify(state)); } catch (e) {} }
 
-var stage = document.getElementById('stage'), dimEl = document.getElementById('dim'), fadeEl = document.getElementById('fade');
-var vids = [document.getElementById('va'), document.getElementById('vb')], cur = 0, fading = false;
+var dipEl = document.getElementById('dip'), stage = document.getElementById('stage'), dimEl = document.getElementById('dim'), fadeEl = document.getElementById('fade');
+var fading = false;
 var CLIPS = [], CRACKLE = '', MUSIC = '';
 
 /* ---------- The clip list ---------- */
@@ -149,71 +150,61 @@ function updateWeather() {
     }).catch(function () {});
 }
 
-/* ---------- Video: two players, so each clip fades into its own start ---------- */
-function other() { return vids[1 - cur]; }
+/* ---------- Video: one player. TVs often have a single video decoder, so only one clip loads at a time.
+   At the end of a clip the picture dips softly toward dark and starts over. ---------- */
+var vid = document.getElementById('va'), watchTimer = null;
 function playSafe(v) { try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
 function loadClip(i) {
   if (!CLIPS.length) return;
   state.clip = (i + CLIPS.length) % CLIPS.length; save();
-  var src = CLIPS[state.clip].src;
   fading = false;
-  vids.forEach(function (v) { v.classList.remove('show'); v.pause(); v.loop = false; v.src = src; v.load(); });
-  cur = 0;
-  vids[0].addEventListener('canplay', function once() {
-    vids[0].removeEventListener('canplay', once);
-    playSafe(vids[0]); vids[0].classList.add('show'); fadeEl.classList.add('clear');
-  });
+  vid.classList.remove('show');
+  vid.loop = false; vid.src = CLIPS[state.clip].src; vid.load(); playSafe(vid);
+  clearTimeout(watchTimer);
+  watchTimer = setTimeout(function () { if (vid.readyState < 3 || vid.paused) report('still loading'); }, 9000);
 }
-function onTime() {
-  var v = vids[cur];
-  if (this !== v || fading || !v.duration || !isFinite(v.duration)) return;
-  if (v.duration < XF * 3) { v.loop = true; return; }
-  if (v.currentTime >= v.duration - XF - .15) {
-    fading = true;
-    var n = other();
-    try { n.currentTime = 0; } catch (e) {}
-    playSafe(n);
-    n.classList.add('show'); v.classList.remove('show');
-    cur = 1 - cur;
-    setTimeout(function () { v.pause(); try { v.currentTime = 0; } catch (e) {} fading = false; }, XF * 1000 + 200);
-  }
+function report(what) {
+  /* Shows why a clip will not play, on screen, so it can be read off the TV. */
+  var e = vid.error, codes = { 1: 'stopped', 2: 'network', 3: 'decode', 4: 'format not supported' };
+  toast('Clip trouble: ' + (e ? codes[e.code] || 'code ' + e.code : what), 'ready ' + vid.readyState + ' · net ' + vid.networkState + ' · ' + (vid.videoWidth || '?') + 'x' + (vid.videoHeight || '?'));
+  fadeEl.classList.add('clear');
 }
-vids.forEach(function (v) {
-  v.addEventListener('timeupdate', onTime);
-  v.addEventListener('ended', function () { if (this === vids[cur] && !fading) { try { this.currentTime = 0; } catch (e) {} playSafe(this); } });
-  v.addEventListener('error', function () {
-    if (this !== vids[cur] || !CLIPS.length) return;
-    fadeEl.classList.add('clear');
-    toast('This clip will not play', CLIPS[state.clip].name);
-    if (CLIPS.length > 1) setTimeout(function () { changeClip(1); }, 2500);
-  });
+vid.addEventListener('playing', function () { clearTimeout(watchTimer); vid.classList.add('show'); fadeEl.classList.add('clear'); dipEl.classList.remove('on'); });
+vid.addEventListener('timeupdate', function () {
+  if (!vid.duration || !isFinite(vid.duration) || fading) return;
+  if (vid.currentTime >= vid.duration - .9) { fading = true; dipEl.classList.add('on'); }
+});
+vid.addEventListener('ended', function () {
+  try { vid.currentTime = 0; } catch (e) {} playSafe(vid);
+  setTimeout(function () { dipEl.classList.remove('on'); fading = false; }, 150);
+});
+vid.addEventListener('error', function () {
+  if (!CLIPS.length) return;
+  report('error');
+  if (CLIPS.length > 1) setTimeout(function () { changeClip(1, true); }, 6000);
 });
 var ROTATE_MS = 10 * 60 * 1000, rotTimer = null;
-function rotateSoon(ms) { clearTimeout(rotTimer); rotTimer = setTimeout(function () { if (fading || menuOpen) return rotateSoon(5000); if (CLIPS.length > 1) crossTo(pickClip(state.clip)); rotateSoon(); }, ms || ROTATE_MS); }
-function crossTo(i) {
-  /* Slow crossfade into another clip; then the hidden player loads it too, for its own loop. */
-  state.clip = i; save();
-  var n = other(), v = vids[cur], src = CLIPS[i].src;
-  fading = true; n.loop = false; n.src = src; n.load();
-  n.addEventListener('canplay', function once() {
-    n.removeEventListener('canplay', once);
-    playSafe(n); n.classList.add('show'); v.classList.remove('show'); cur = 1 - cur;
-    setTimeout(function () { v.pause(); v.loop = false; v.src = src; v.load(); fading = false; }, XF * 1000 + 300);
-  });
-}
-function changeClip(d) {
-  if (CLIPS.length < 2) { if (CLIPS.length) toast(CLIPS[state.clip].name, 'the only clip so far'); return; }
+function rotateSoon(ms) { clearTimeout(rotTimer); rotTimer = setTimeout(function () { if (menuOpen) return rotateSoon(5000); if (CLIPS.length > 1) goTo(pickClip(state.clip)); rotateSoon(); }, ms || ROTATE_MS); }
+function goTo(i, quiet) {
   fadeEl.classList.remove('clear');
-  setTimeout(function () { loadClip(state.clip + d); toast(CLIPS[state.clip].name); }, 800);
+  setTimeout(function () { loadClip(i); if (!quiet) toast(CLIPS[state.clip].name); }, 1200);
+}
+function changeClip(d, quiet) {
+  if (CLIPS.length < 2) { if (CLIPS.length) toast(CLIPS[state.clip].name, 'the only clip so far'); return; }
+  goTo(state.clip + d, quiet);
   rotateSoon();
 }
 
 /* ---------- Sound: a real recorded crackle, looped with a soft overlap ---------- */
-var AC = null, crackleBuf = null, crackleGain = null, crackleTimer = null, nextAt = 0, paused = false, musicEl = null;
+var RATE = .72, AC = null, crackleBuf = null, crackleGain = null, crackleTimer = null, nextAt = 0, paused = false, musicEl = null;
 function initAudio() {
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
   if (AC && CRACKLE) {
-    crackleGain = AC.createGain(); crackleGain.gain.value = 0; crackleGain.connect(AC.destination);
+    crackleGain = AC.createGain(); crackleGain.gain.value = 0;
+    /* Slowed a little and the hiss rolled off, so it reads as logs in a fireplace rather than a sizzle. */
+    var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = .5;
+    var lp2 = AC.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 2600; lp2.Q.value = .5;
+    crackleGain.connect(lp); lp.connect(lp2); lp2.connect(AC.destination);
     fetch(CRACKLE).then(function (r) { return r.arrayBuffer(); }).then(function (b) {
       return new Promise(function (ok, no) { AC.decodeAudioData(b, ok, no); });
     }).then(function (buf) { crackleBuf = buf; nextAt = AC.currentTime + .1; schedule(); setSound(); })
@@ -227,8 +218,8 @@ function schedule() {
   var X = Math.min(1.5, crackleBuf.duration / 4);
   while (nextAt < AC.currentTime + 4) {
     var src = AC.createBufferSource(), g = AC.createGain();
-    src.buffer = crackleBuf; src.connect(g); g.connect(crackleGain);
-    var t = nextAt, end = t + crackleBuf.duration;
+    src.buffer = crackleBuf; src.playbackRate.value = RATE; src.connect(g); g.connect(crackleGain);
+    var t = nextAt, end = t + crackleBuf.duration / RATE;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + X);
     g.gain.setValueAtTime(1, end - X); g.gain.linearRampToValueAtTime(0, end);
     src.start(t); src.stop(end + .05);
@@ -238,7 +229,7 @@ function schedule() {
 }
 function setSound() {
   if (crackleGain) {
-    var on = state.crackle && !paused ? .9 : 0;
+    var on = state.crackle && !paused ? 1.1 : 0;
     crackleGain.gain.cancelScheduledValues(AC.currentTime);
     crackleGain.gain.setTargetAtTime(on, AC.currentTime, .4);
   }
@@ -256,7 +247,7 @@ function toast(msg, sub) {
 function keepAwake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} }
 var started = false;
 document.addEventListener('visibilitychange', function () {
-  if (document.visibilityState === 'visible') { playSafe(vids[cur]); if (started) { keepAwake(); if (AC && AC.resume) AC.resume(); } }
+  if (document.visibilityState === 'visible') { playSafe(vid); if (started) { keepAwake(); if (AC && AC.resume) AC.resume(); } }
 });
 function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function fullScreen() {
@@ -274,7 +265,7 @@ function start() {
   started = true;
   focusLayer();
   document.getElementById('hint').classList.add('gone');
-  fullScreen(); keepAwake(); initAudio(); centerScroll(); playSafe(vids[cur]);
+  fullScreen(); keepAwake(); initAudio(); centerScroll(); playSafe(vid);
 }
 
 /* ---------- Settings card: hold OK ---------- */
@@ -401,7 +392,7 @@ fetch('clips.txt?t=' + Date.now()).then(function (r) { return r.text(); }).then(
   if (!CLIPS.length) { fadeEl.classList.add('clear'); toast('No clips listed yet', 'add one to clips.txt'); return; }
   return wxReady.then(function () { loadClip(pickClip(-1)); rotateSoon(); });
 }).catch(function () { fadeEl.classList.add('clear'); toast('Could not read clips.txt'); });
-window.__fire = { today: today, weather: function () { return wx; }, state: state, clips: function () { return CLIPS; }, crackle: function () { return !!crackleBuf; }, video: function () { return vids[cur]; }, start: start, changeClip: changeClip };
+window.__fire = { today: today, weather: function () { return wx; }, state: state, clips: function () { return CLIPS; }, crackle: function () { return !!crackleBuf; }, video: function () { return vid; }, start: start, changeClip: changeClip };
 })();
 </script>
 </body>
