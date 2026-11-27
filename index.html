@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Art Wall</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Sans+Condensed:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Sans+Condensed:wght@400;500&family=Jost:wght@400;500&display=swap">
 <style>
 /* A live, endless portrait art wall for a TV in portrait. Everything works from the remote's arrow keys. */
 :root {
@@ -17,6 +17,7 @@
   --accent: #d9b77e;
   --serif: "Newsreader", Georgia, serif;
   --label: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --card: "Jost", "Futura", "Century Gothic", "Helvetica Neue", Arial, sans-serif;
   --fade: 3s;
   --mat-color: #cbbfac;
   --bevel: #ece6da;
@@ -50,13 +51,16 @@ body.idle, body.idle * { cursor: none !important; }
 .slide.photo .window img { animation: drift 120s ease-in-out infinite alternate; }
 @keyframes drift { from { transform: scale(1); } to { transform: scale(1.05); } }
 .placard { position: absolute; left: var(--mat); right: var(--mat); bottom: 0; height: var(--mat); display: flex; align-items: center; justify-content: center;
-  gap: .7em; white-space: nowrap; overflow: hidden; font-size: max(14px, calc(var(--mat) * var(--label-scale, .56))); letter-spacing: .01em; color: var(--label-ink);
-  font-weight: 600;
+  gap: .9em; white-space: nowrap; overflow: hidden; font-size: max(14px, calc(var(--mat) * var(--label-scale, .5))); letter-spacing: .04em; color: var(--label-ink);
+  font-family: var(--card); font-weight: 400;
   opacity: 0; transition: opacity 1.2s ease; }
 body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placard { opacity: 1; }
-.placard .t { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.08em; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+.placard .t { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
 .placard .t { min-width: 0; flex: 0 1 auto; }
-.placard .by { overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; max-width: 40%; font-size: .86em; }
+.placard .by { overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; max-width: 40%; font-size: .86em; opacity: .78; }
+/* A small square between title and artist: the one Bauhaus mark on the card. */
+.placard .by::before { content: ''; display: inline-block; width: .32em; height: .32em; background: currentColor; vertical-align: .22em; margin-right: .9em; opacity: .9; }
+.placard .code { font-family: var(--label); }
 .placard.tight .code { display: none; }
 .placard .code { opacity: .6; font-size: .6em; font-weight: 500; letter-spacing: .08em; flex-shrink: 0; }
 /* Late at night the pictures dim a little, so the room stays calm. */
@@ -505,14 +509,14 @@ function render(it) {
 
 /* Keep labels big; only shrink a long one a little, then let it trail off. */
 function fitLabel(cap) {
-  var sc = .56; cap.style.setProperty('--label-scale', sc);
+  var sc = .5; cap.style.setProperty('--label-scale', sc);
   function over() {   // the spans shrink to fit, so add up what each one would need at full length
     var need = 0, kids = cap.children, n = 0;
     for (var i = 0; i < kids.length; i++) if (getComputedStyle(kids[i]).display !== 'none') { need += kids[i].scrollWidth; n++; }
     return need + (n - 1) * parseFloat(getComputedStyle(cap).fontSize) * .7 > cap.clientWidth;
   }
   if (over()) cap.classList.add('tight');      // the small code steps aside first
-  while (over() && sc > .44) { sc -= .03; cap.style.setProperty('--label-scale', sc.toFixed(2)); }
+  while (over() && sc > .4) { sc -= .03; cap.style.setProperty('--label-scale', sc.toFixed(2)); }
 }
 function toneOK(img, blueOK, darkOK) {
   try {
