@@ -21,7 +21,10 @@
   color-scheme: dark;
 }
 html, body { height: 100%; }
-body { margin: 0; background: var(--wall); color: var(--ink); overflow: hidden; font-family: var(--label); }
+html { overflow: scroll; scrollbar-width: none; scroll-behavior: auto; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+body { margin: 0; background: var(--wall); color: var(--ink); font-family: var(--label); }
+#space { width: 300vw; height: 300vh; }
 body.idle, body.idle * { cursor: none !important; }
 
 #stage { position: fixed; left: 50%; top: 50%; width: 100vw; height: 100vh; transform: translate(-50%,-50%); overflow: hidden; background: var(--wall); }
@@ -72,6 +75,7 @@ body.started #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box
 </style>
 </head>
 <body class="labels-brief">
+<div id="space"></div>
 <div id="stage">
   <div id="frame">
     <div class="slide" id="s0"></div>
@@ -79,7 +83,7 @@ body.started #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box
     <div id="hint">
       <h1>Art Wall</h1>
       <p>Press <kbd>OK</kbd> to start in full screen.</p>
-      <p>Then point and press <kbd>OK</kbd>: right side next, left side back, top more like this, bottom never again, middle pause.</p>
+      <p>Then press <kbd>OK</kbd> again for the blue circle, and use the arrows: <kbd>▶</kbd> next, <kbd>◀</kbd> back, <kbd>▲</kbd> more like this, <kbd>▼</kbd> never again.</p>
       <p>Number keys: <kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels &nbsp; <kbd>9</kbd> help</p>
     </div>
     <div id="zones">
@@ -88,11 +92,10 @@ body.started #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box
       <button class="bottom" tabindex="0">✕ Never show again</button>
     </div>
     <div id="help">
-      <div>Move the pointer onto the picture and press <b>OK</b>:</div>
-      <div><b>Right side</b> next &nbsp; <b>Left side</b> back</div>
-      <div><b>Top</b> more like this &nbsp; <b>Bottom</b> never show again</div>
-      <div><b>Middle</b> pause or play</div>
-      <div>Any OK also brings back full screen.</div>
+      <div>Press <b>OK</b> once so the pointer becomes the blue circle. Then:</div>
+      <div><b>▶</b> next &nbsp; <b>◀</b> back</div>
+      <div><b>▲</b> more like this &nbsp; <b>▼</b> never show again</div>
+      <div>With the normal pointer instead, point at the sides, top or bottom and press <b>OK</b>.</div>
     </div>
     <div id="status"></div>
     <div id="toast"></div>
@@ -338,7 +341,7 @@ function start() {
   document.body.classList.add('started');
   try { document.querySelector('#zones .mid').focus(); } catch (e) {}
   document.getElementById('hint').classList.add('gone');
-  fullScreen(); keepAwake(); forward();
+  fullScreen(); keepAwake(); forward(); centerScroll();
   showHelp(9000);
 }
 var helpEl = document.getElementById('help'), helpTimer;
@@ -387,6 +390,23 @@ function flashZones() {
   clearTimeout(idleTimer);
   idleTimer = setTimeout(function () { document.body.classList.add('idle'); document.body.classList.remove('pointing'); }, 4000);
 }
+/* Samsung's blue-circle mode scrolls the page with the arrows. Read each nudge as a command, then re-center. */
+var scrollReady = false, scrollBusy = false;
+function centerScroll() {
+  scrollReady = false;
+  window.scrollTo(window.innerWidth, window.innerHeight);
+  setTimeout(function () { scrollReady = true; }, 200);
+}
+window.addEventListener('scroll', function () {
+  if (!started || !scrollReady || scrollBusy) return;
+  var dx = window.scrollX - window.innerWidth, dy = window.scrollY - window.innerHeight;
+  if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+  scrollBusy = true;
+  if (Math.abs(dx) >= Math.abs(dy)) { if (dx > 0) { toast('Next ▶'); forward(); } else { toast('◀ Back'); back(); } }
+  else { if (dy > 0) never(); else like(); }
+  setTimeout(function () { scrollBusy = false; centerScroll(); }, 600);
+}, { passive: true });
+window.addEventListener('resize', function () { if (started) centerScroll(); });
 /* Samsung's Back button: stay on the page instead of leaving it. */
 try { history.pushState({ wall: 1 }, ''); } catch (e) {}
 window.addEventListener('popstate', function () {
