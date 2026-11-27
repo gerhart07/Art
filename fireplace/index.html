@@ -862,7 +862,7 @@ function drawScene() {
     var O = px(scene.open, FW, FH);
     fireC.style.display = 'block';
     fireC.style.left = O.x + 'px'; fireC.style.top = O.y + 'px'; fireC.style.width = O.w + 'px'; fireC.style.height = O.h + 'px';
-    var q = Math.min(0.42, 420 / Math.max(O.w, 1));
+    var q = Math.min(0.42 * SCALE, 420 / Math.max(O.w, 1));
     if (!gl) q *= 0.5;
     fireC.width = Math.max(48, Math.round(O.w * q)); fireC.height = Math.max(48, Math.round(O.h * q)); fb = null;
     if (gl) gl.viewport(0, 0, fireC.width, fireC.height);
