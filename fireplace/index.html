@@ -88,14 +88,15 @@ body.idle, body.idle * { cursor: none !important; }
     <div id="hint">
       <h1>Fireplace</h1>
       <p>Press <kbd>OK</kbd> to start the sound and full screen.</p>
-      <p><kbd>◀</kbd> <kbd>▶</kbd> change the fireplace &nbsp; <kbd>▲</kbd> <kbd>▼</kbd> volume</p>
+      <p><kbd>◀</kbd> <kbd>▶</kbd> change the fireplace</p>
+      <p>Use the TV's own volume buttons for loudness.</p>
       <p>Hold <kbd>OK</kbd> for music and settings</p>
     </div>
     <div id="focus" tabindex="0" aria-label="Fireplace"></div>
     <div id="help">
       <div class="t">Remote buttons</div>
       <div><b>◀ ▶</b> change the fireplace</div>
-      <div><b>▲ ▼</b> volume</div>
+      <div><b>Volume</b> the TV's own buttons</div>
       <div><b>⏯</b> pause the sound</div>
       <div><b>OK</b> hold for a second: music, crackle, fire size, brightness, art wall</div>
     </div>
@@ -116,6 +117,7 @@ if (!state.rotate) {
   /* Follow the art wall's turn setting, since both pages live on the same TV. */
   try { var art = JSON.parse(localStorage.getItem('art-wall-v2') || '{}'); state.rotate = art.rotate || 'none'; } catch (e) { state.rotate = 'none'; }
 }
+state.vol = 1;  /* the TV's own buttons set loudness */
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 
 var SIZES = [
@@ -1058,8 +1060,8 @@ function initAudio() {
   if (AC) { if (AC.state === 'suspended' && AC.resume) AC.resume(); return; }
   var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
   AC = new Ctx();
-  var comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.connect(AC.destination);
-  master = AC.createGain(); master.gain.value = paused ? 0 : state.vol * state.vol; master.connect(comp);
+  var comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.knee.value = 12; comp.connect(AC.destination);
+  master = AC.createGain(); master.gain.value = paused ? 0 : 0.9; master.connect(comp);
   fireBus = AC.createGain(); fireBus.gain.value = state.crackle ? 1 : 0; fireBus.connect(master);
   musicBus = AC.createGain(); musicBus.gain.value = 0.75; musicBus.connect(master);
   var verb = AC.createConvolver(); verb.buffer = impulse(3.2, 2.6); verbIn = AC.createGain(); verbIn.gain.value = 1;
@@ -1247,7 +1249,7 @@ function setVolume() {
   if (!AC) return;
   master.gain.cancelScheduledValues(AC.currentTime);
   master.gain.setValueAtTime(master.gain.value, AC.currentTime);
-  master.gain.linearRampToValueAtTime(paused ? 0.0001 : Math.max(0.0001, state.vol * state.vol), AC.currentTime + 0.25);
+  master.gain.linearRampToValueAtTime(paused ? 0.0001 : 0.9, AC.currentTime + 0.25);
 }
 function setCrackle() {
   if (!AC) return;
@@ -1344,16 +1346,9 @@ function changeScene(d) {
   fadeEl.classList.remove('clear');
   setTimeout(function () { drawScene(); fadeEl.classList.add('clear'); toast(SCENES[state.scene].name); }, 650);
 }
-function volume(d) {
-  state.vol = Math.round(Math.max(0, Math.min(1, state.vol + d)) * 10) / 10; save();
-  if (paused && d > 0) { paused = false; }
-  setVolume(); toast('Volume ' + Math.round(state.vol * 10), state.vol === 0 ? 'muted' : '');
-}
 function act(name) {
   if (name === 'right') changeScene(1);
   else if (name === 'left') changeScene(-1);
-  else if (name === 'up') volume(0.1);
-  else if (name === 'down') volume(-0.1);
 }
 window.addEventListener('keydown', function (e) {
   var k = e.key, c = e.keyCode;
@@ -1376,8 +1371,7 @@ window.addEventListener('keydown', function (e) {
   if (e.repeat && (c === 37 || c === 39)) { e.preventDefault(); return; }
   if (k === 'ArrowRight' || c === 39) { e.preventDefault(); act('right'); }
   else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); act('left'); }
-  else if (k === 'ArrowUp' || c === 38) { e.preventDefault(); act('up'); }
-  else if (k === 'ArrowDown' || c === 40) { e.preventDefault(); act('down'); }
+  else if (k === 'ArrowUp' || c === 38 || k === 'ArrowDown' || c === 40) { e.preventDefault(); }
   else if (k === '1') { state.crackle = !state.crackle; save(); setCrackle(); toast(state.crackle ? 'Crackle on' : 'Crackle off'); }
   else if (k === '2') { var m = (state.music + 1) % MUSIC.length; setMusic(m); toast('Music: ' + MUSIC[m]); }
   else if (k === '3') { state.size = (state.size + 1) % SIZES.length; save(); toast(SIZES[state.size].name); }
