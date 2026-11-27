@@ -13,4 +13,4 @@ Credits for the starting clips and sound:
 - "Christmas stockings hanging on a fireplace" by Anastasia Shuraeva, Pexels (free Pexels license).
 - "Vertical fireplace" by IslandHopper X, Pexels (free Pexels license).
 - "Cozy fireplace with warm glowing flames" by Alexander Mass, Pexels (free Pexels license).
-- Fire sound: "WWS Bonfireburning" by Work With Sounds / Werstas (recorded by Kimmo Kestinen), Wikimedia Commons, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). The page evens out its loudness and trims the lowest rumble.
+- Fire sound: stove-crackle.mp3 is the wood stove audio from the "Cat by the stove" Google Flow clip, rearranged into a 36 second loop and leveled.

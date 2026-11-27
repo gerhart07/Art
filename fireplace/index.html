@@ -85,7 +85,7 @@ body.idle, body.idle * { cursor: none !important; }
 (function () {
 'use strict';
 var DIMS = [{ name: 'full', a: 0 }, { name: 'softer', a: .25 }, { name: 'low', a: .45 }, { name: 'night', a: .65 }];
-var state = { clip: 0, crackle: true, music: false, dim: 0, rotate: 'none' };
+var state = { clip: 0, crackle: true, vol: 'medium', music: false, dim: 0, rotate: 'none' };
 try { var s = JSON.parse(localStorage.getItem('fireplace-clips') || '{}'); for (var k in s) state[k] = s[k]; } catch (e) {}
 function save() { try { localStorage.setItem('fireplace-clips', JSON.stringify(state)); } catch (e) {} }
 
@@ -165,7 +165,7 @@ function loadClip(i) {
   fading = false;
   vid.classList.remove('show');
   var src = CLIPS[state.clip].src; seamless = !/^https?:/i.test(src);
-  vid.loop = seamless; vid.src = src; vid.load(); playSafe(vid);
+  vid.loop = seamless; vid.src = src; clipSound(); vid.load(); playSafe(vid);
   clearTimeout(watchTimer);
   watchTimer = setTimeout(function () { if (vid.readyState < 3 || vid.paused) report('still loading'); }, 9000);
 }
@@ -201,7 +201,15 @@ function changeClip(d, quiet) {
   rotateSoon();
 }
 
-/* ---------- Sound: a real recorded crackle, looped with a soft overlap ---------- */
+/* ---------- Sound: a real recorded crackle, looped with a soft overlap ----------
+   A clip tagged "sound" plays its own audio instead, and the crackle rests while it is on screen. */
+var VOLS = { soft: .5, medium: 1, loud: 1.8 }, VIDVOL = { soft: .45, medium: .7, loud: 1 };
+function ownSound() { var c = CLIPS[state.clip]; return !!(c && c.tags.indexOf('sound') >= 0); }
+function clipSound() {
+  var on = started && state.crackle && !paused && ownSound();
+  vid.muted = !on; try { vid.volume = VIDVOL[state.vol] || .7; } catch (e) {}
+  setSound();
+}
 var RATE = 1, AC = null, crackleBuf = null, crackleGain = null, crackleLevel = 1, crackleTimer = null, nextAt = 0, paused = false, musicEl = null;
 function initAudio() {
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
@@ -226,11 +234,11 @@ function initAudio() {
   setSound();
 }
 function levelFor(buf) {
-  /* Brings any recording to the same healthy loudness (about -16 dB), so a quiet file is not lost under the TV's speakers. */
+  /* Brings any recording to the same quiet, steady loudness (about -24 dB), so swapping files does not jump the volume. */
   var d = buf.getChannelData(0), e = 0, n = 0;
   for (var i = 0; i < d.length; i += 4) { e += d[i] * d[i]; n++; }
   var rms = Math.sqrt(e / Math.max(n, 1)) || .01;
-  return Math.max(.5, Math.min(30, .16 / rms));
+  return Math.max(.2, Math.min(10, .063 / rms));
 }
 function schedule() {
   if (!crackleBuf) return;
@@ -248,7 +256,7 @@ function schedule() {
 }
 function setSound() {
   if (crackleGain) {
-    var on = state.crackle && !paused ? crackleLevel : 0;
+    var on = state.crackle && !paused && !ownSound() ? crackleLevel * (VOLS[state.vol] || 1) : 0;
     crackleGain.gain.cancelScheduledValues(AC.currentTime);
     crackleGain.gain.setTargetAtTime(on, AC.currentTime, .4);
   }
@@ -284,7 +292,7 @@ function start() {
   started = true;
   focusLayer();
   document.getElementById('hint').classList.add('gone');
-  fullScreen(); keepAwake(); initAudio(); centerScroll(); playSafe(vid);
+  fullScreen(); keepAwake(); initAudio(); clipSound(); centerScroll(); playSafe(vid);
 }
 
 /* ---------- Settings card: hold OK ---------- */
@@ -295,12 +303,16 @@ function goArt() { closeMenu(); toast('Art wall'); setTimeout(function () { loca
 function menuItems() {
   var items = [
     { t: 'Clip: ' + (CLIPS.length ? CLIPS[state.clip].name : 'none listed'), a: function () { changeClip(1); } },
-    { t: 'Crackle: ' + (state.crackle ? 'on' : 'off'), a: function () { state.crackle = !state.crackle; save(); setSound(); } }
+    { t: 'Crackle: ' + (state.crackle ? state.vol : 'off'), a: function () {
+        var order = ['soft', 'medium', 'loud'], k = state.crackle ? order.indexOf(state.vol) + 1 : 0;
+        if (k >= order.length) state.crackle = false; else { state.crackle = true; state.vol = order[k]; }
+        save(); clipSound();
+      } }
   ];
   if (MUSIC) items.push({ t: 'Music: ' + (state.music ? 'on' : 'off'), a: function () { state.music = !state.music; save(); setSound(); } });
   items.push(
     { t: 'Brightness: ' + DIMS[state.dim].name, a: function () { state.dim = (state.dim + 1) % DIMS.length; save(); dimEl.style.opacity = DIMS[state.dim].a; } },
-    { t: paused ? 'Sound: paused' : 'Sound: on', a: function () { paused = !paused; setSound(); } },
+    { t: paused ? 'Sound: paused' : 'Sound: on', a: function () { paused = !paused; clipSound(); } },
     { t: 'Picture: ' + ROT_NAMES[state.rotate || 'none'], a: function () { state.rotate = state.rotate === 'none' ? 'left' : state.rotate === 'left' ? 'right' : 'none'; save(); setRotate(); } },
     { t: 'Go to the art wall', a: goArt },
     { t: 'Close', a: closeMenu }
@@ -356,7 +368,7 @@ window.addEventListener('keydown', function (e) {
   else if (k === ' ' || k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause' || c === 10252 || c === 415 || c === 19 || c === 179) {
     e.preventDefault();
     paused = k === 'MediaPlay' || c === 415 ? false : k === 'MediaPause' || c === 19 ? true : !paused;
-    setSound(); toast(paused ? 'Sound paused' : 'Sound on');
+    clipSound(); toast(paused ? 'Sound paused' : 'Sound on');
   }
 }, true);
 document.addEventListener('click', function () {
