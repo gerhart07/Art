@@ -234,6 +234,8 @@ function fetchCMA(b) {
 /* ---------- Queue ---------- */
 var queue = [], hist = [], pos = -1, filling = false, failures = 0;
 function fits(it) {
+  var r = it.h / it.w;
+  if (r < 1.62 && Math.random() < 0.6) return false;   // favor pictures shaped like the screen, so the mat stays thin
   return !(it.kind === 'art' && PEOPLE.test(it.title)) &&
          it.h / it.w >= MIN_RATIO && it.h / it.w <= MAX_RATIO && it.h >= MIN_HEIGHT && !SKIP_WORDS.test(it.title) &&
          !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
@@ -358,8 +360,14 @@ function layout() {
   if (!tall) stage.classList.add('wide');
   document.body.classList.remove('labels-brief', 'labels-always', 'labels-off');
   document.body.classList.add('labels-' + state.labels);
-  document.documentElement.style.setProperty('--mat', Math.round(Math.max(18, fr.clientWidth * 0.065)) + 'px');
+  /* Size from the real visible area, not 100vh, so a browser toolbar can't push the picture off center. */
+  var vv = window.visualViewport, W = Math.round(vv ? vv.width : w), H = Math.round(vv ? vv.height : h);
+  var turned = state.rotate !== 'none', sw = turned ? H : W, sh = turned ? W : H;
+  stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
+  fr.style.width = (tall ? sw : Math.round(sh * 0.5625)) + 'px';
+  document.documentElement.style.setProperty('--mat', Math.round(Math.max(18, Math.min(sw, fr.clientWidth || sw) * 0.05)) + 'px');
 }
+if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
 window.addEventListener('resize', layout);
 
 var toastEl = document.getElementById('toast'), toastTimer;
