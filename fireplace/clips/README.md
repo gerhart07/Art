@@ -13,4 +13,4 @@ Credits for the starting clips and sound:
 - "Christmas stockings hanging on a fireplace" by Anastasia Shuraeva, Pexels (free Pexels license).
 - "Vertical fireplace" by IslandHopper X, Pexels (free Pexels license).
 - "Cozy fireplace with warm glowing flames" by Alexander Mass, Pexels (free Pexels license).
-- "Dry grass burning in open fireplace" by ezwa, Wikimedia Commons (public domain).
+- Fire sound: "WWS Bonfireburning" by Work With Sounds / Werstas (recorded by Kimmo Kestinen), Wikimedia Commons, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). The page evens out its loudness and trims the lowest rumble.

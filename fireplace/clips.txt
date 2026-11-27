@@ -19,7 +19,7 @@ https://videos.pexels.com/video-files/18086762/18086762-uhd_1440_2560_24fps.mp4 
 https://videos.pexels.com/video-files/32575073/13890296_1440_2560_30fps.mp4 | Fireplace glow
 
 # The fire sound under every clip. Swap the link to change it.
-crackle: https://upload.wikimedia.org/wikipedia/commons/d/d8/Dry_grass_burning_in_open_fireplace.ogg
+crackle: https://upload.wikimedia.org/wikipedia/commons/7/70/WWS_Bonfireburning.ogg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original
 
 # Optional background music. Remove the # and put a link to a music file.
 # music: clips/my-song.mp3

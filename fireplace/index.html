@@ -202,22 +202,35 @@ function changeClip(d, quiet) {
 }
 
 /* ---------- Sound: a real recorded crackle, looped with a soft overlap ---------- */
-var RATE = .72, AC = null, crackleBuf = null, crackleGain = null, crackleTimer = null, nextAt = 0, paused = false, musicEl = null;
+var RATE = 1, AC = null, crackleBuf = null, crackleGain = null, crackleLevel = 1, crackleTimer = null, nextAt = 0, paused = false, musicEl = null;
 function initAudio() {
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
   if (AC && CRACKLE) {
     crackleGain = AC.createGain(); crackleGain.gain.value = 0;
-    /* Slowed a little and the hiss rolled off, so it reads as logs in a fireplace rather than a sizzle. */
-    var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = .5;
-    var lp2 = AC.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 2600; lp2.Q.value = .5;
-    crackleGain.connect(lp); lp.connect(lp2); lp2.connect(AC.destination);
+    /* Full range, with only the wind rumble below 45 Hz taken out. A gentle compressor keeps the pops from jumping out once it is turned up. */
+    var hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 45; hp.Q.value = .7;
+    crackleGain.connect(hp);
+    var last = hp;
+    try {
+      var comp = AC.createDynamicsCompressor();
+      comp.threshold.value = -18; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = .003; comp.release.value = .25;
+      hp.connect(comp); last = comp;
+    } catch (e) {}
+    last.connect(AC.destination);
     fetch(CRACKLE).then(function (r) { return r.arrayBuffer(); }).then(function (b) {
       return new Promise(function (ok, no) { AC.decodeAudioData(b, ok, no); });
-    }).then(function (buf) { crackleBuf = buf; nextAt = AC.currentTime + .1; schedule(); setSound(); })
+    }).then(function (buf) { crackleBuf = buf; crackleLevel = levelFor(buf); nextAt = AC.currentTime + .1; schedule(); setSound(); })
       .catch(function () { toast('The crackle did not load'); });
   }
   if (MUSIC) { musicEl = new Audio(MUSIC); musicEl.loop = true; musicEl.volume = .5; }
   setSound();
+}
+function levelFor(buf) {
+  /* Brings any recording to the same healthy loudness (about -16 dB), so a quiet file is not lost under the TV's speakers. */
+  var d = buf.getChannelData(0), e = 0, n = 0;
+  for (var i = 0; i < d.length; i += 4) { e += d[i] * d[i]; n++; }
+  var rms = Math.sqrt(e / Math.max(n, 1)) || .01;
+  return Math.max(.5, Math.min(30, .16 / rms));
 }
 function schedule() {
   if (!crackleBuf) return;
@@ -235,7 +248,7 @@ function schedule() {
 }
 function setSound() {
   if (crackleGain) {
-    var on = state.crackle && !paused ? 1.1 : 0;
+    var on = state.crackle && !paused ? crackleLevel : 0;
     crackleGain.gain.cancelScheduledValues(AC.currentTime);
     crackleGain.gain.setTargetAtTime(on, AC.currentTime, .4);
   }
