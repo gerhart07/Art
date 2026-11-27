@@ -7,10 +7,18 @@ body{margin:0;background:#222;color:#ddd;font:11px/1.2 sans-serif}
 .b img{width:100%;height:100%;object-fit:cover}
 .n{position:absolute;top:2px;left:2px;background:#000c;color:#ff0;font:bold 14px sans-serif;padding:1px 4px}
 .t{height:13px;overflow:hidden;word-break:break-all}
+.big .c{width:auto;display:flex;gap:4px;align-items:flex-start;background:#111;padding:4px}
+.big .b{width:216px;height:384px}
+.big .f{width:384px;height:384px;background:#000;display:flex;align-items:center;justify-content:center}
+.big .f img{max-width:100%;max-height:100%}
+.big .t{height:auto;width:120px;font-size:12px;color:#eee}
+.big .n{font-size:20px}
 </style></head><body><div id="g"></div>
 <script>
 var P = new URLSearchParams(location.search), g = document.getElementById('g');
-var api = 'https://commons.wikimedia.org/w/api.php?origin=*&format=json&formatversion=2&action=query&prop=imageinfo&iiprop=size|url&iiurlwidth=260';
+if (P.get('big')) document.body.className = 'big';
+g.setAttribute('aria-hidden','true');
+var api = 'https://commons.wikimedia.org/w/api.php?origin=*&format=json&formatversion=2&action=query&prop=imageinfo&iiprop=size|url&iiurlwidth=' + (P.get('big') ? 640 : 260);
 var off = +(P.get('o') || 0), n = +(P.get('n') || 50);
 var minr = +(P.get('minr') || 0), pages = +(P.get('p') || 1), all = [];
 function base(o){ return P.get('t') ? api + '&titles=' + encodeURIComponent(P.get('t').split('|').map(function(t){return 'File:'+t}).join('|'))
@@ -26,8 +34,8 @@ function render(){ var seen = {};
   document.title = 'Picker ' + pages2.length + ' of ' + all.length;
   pages2.forEach(function(p,i){var ii=p.imageinfo[0];
     var c=document.createElement('div');c.className='c';
-    c.innerHTML='<div class="b"><img alt="" src="'+ii.thumburl+'"><span class="n">'+i+'</span></div><div class="t"></div>';
-    c.querySelector('.t').textContent=p.title.slice(5,40);c.querySelector('.t').setAttribute('aria-hidden','true');
+    c.innerHTML=(P.get('big')?'<div class="f"><img alt="" src="'+ii.thumburl+'"></div>':'')+'<div class="b"><img alt="" src="'+ii.thumburl+'"><span class="n">'+i+'</span></div><div class="t"></div>';
+    c.querySelector('.t').textContent=P.get('big')?p.title.slice(5)+' '+ii.width+'x'+ii.height:p.title.slice(5,40);c.querySelector('.t').setAttribute('aria-hidden','true');
     g.appendChild(c);});
   var pre=document.createElement('pre');pre.id='list';pre.style.cssText='white-space:pre-wrap;font-size:9px;color:#888';pre.textContent=LIST.join('\n');document.body.appendChild(pre); }
 step(0);
