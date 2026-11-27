@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Sans+Condensed:wght@400;500&display=swap">
+<style>
+/* A live, endless portrait art wall for a TV in portrait. Everything works from the remote's arrow keys. */
+:root {
+  --wall: #0e0d0c;
+  --ink: #f3efe8;
+  --ink-soft: rgba(243,239,232,.72);
+  --ink-faint: rgba(243,239,232,.45);
+  --panel: rgba(18,17,15,.86);
+  --accent: #d9b77e;
+  --serif: "Newsreader", Georgia, serif;
+  --label: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --fade: 3s;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--wall); color: var(--ink); overflow: hidden; font-family: var(--label); }
+body.idle, body.idle * { cursor: none !important; }
+
+#stage { position: fixed; left: 50%; top: 50%; width: 100vw; height: 100vh; transform: translate(-50%,-50%); overflow: hidden; background: var(--wall); }
+#stage.turn-left  { width: 100vh; height: 100vw; transform: translate(-50%,-50%) rotate(-90deg); }
+#stage.turn-right { width: 100vh; height: 100vw; transform: translate(-50%,-50%) rotate(90deg); }
+#frame { position: absolute; top: 0; bottom: 0; left: 50%; width: 100%; transform: translateX(-50%); overflow: hidden; }
+#stage.wide #frame { width: 56.25vh; }
+#stage.wide.turn-left #frame, #stage.wide.turn-right #frame { width: 100%; }
+
+.slide { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity var(--fade) ease-in-out; background: var(--wall); }
+.slide.on { opacity: 1; }
+.slide img.fill { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; animation: drift 120s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: scale(1); } to { transform: scale(1.05); } }
+.slide .hang { position: absolute; top: 6%; bottom: 14%; left: 7%; right: 7%; display: flex; align-items: center; justify-content: center; }
+.slide .hang img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 2.4vh 6vh rgba(0,0,0,.55); }
+
+.caption { position: absolute; left: 6%; right: 6%; bottom: 3.2%; opacity: 0; transition: opacity 1.2s ease; text-shadow: 0 1px 12px rgba(0,0,0,.85); }
+.slide.art .caption { text-shadow: none; }
+body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .caption { opacity: 1; }
+.caption .t { font-family: var(--serif); font-style: italic; font-size: clamp(16px, 2.2vmin, 34px); line-height: 1.2; }
+.caption .c { margin-top: .5vmin; font-size: clamp(12px, 1.45vmin, 22px); letter-spacing: .02em; color: var(--ink-soft); }
+.caption .code { color: var(--accent); margin-left: .6em; letter-spacing: .08em; }
+
+#toast { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%) scale(.96); padding: 2vmin 3.4vmin; border-radius: 1.4vmin; background: var(--panel); font-size: clamp(16px, 2.6vmin, 40px); opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; text-align: center; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+#toast small { display: block; margin-top: .6vmin; font-size: .55em; color: var(--ink-soft); }
+
+#hint { position: absolute; left: 6%; right: 6%; top: 50%; transform: translateY(-50%); text-align: center; transition: opacity 1s; }
+#hint h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 5vmin, 72px); margin: 0 0 3vmin; }
+#hint p { font-size: clamp(14px, 2vmin, 30px); color: var(--ink-soft); margin: 1.2vmin 0; line-height: 1.45; }
+#hint kbd { font-family: var(--label); color: var(--ink); border: 1px solid var(--ink-faint); border-radius: .6vmin; padding: 0 .6vmin; }
+#hint.gone { opacity: 0; pointer-events: none; }
+#status { position: absolute; left: 6%; right: 6%; top: 3%; font-size: clamp(11px, 1.3vmin, 18px); color: var(--ink-faint); text-align: center; }
+#keepawake { position: fixed; width: 2px; height: 2px; opacity: .01; pointer-events: none; left: 0; bottom: 0; }
+</style>
+</head>
+<body class="labels-brief">
+<div id="stage">
+  <div id="frame">
+    <div class="slide" id="s0"></div>
+    <div class="slide" id="s1"></div>
+    <div id="hint">
+      <h1>Art Wall</h1>
+      <p>Press <kbd>OK</kbd> to start.</p>
+      <p><kbd>▲</kbd> more like this &nbsp; <kbd>▼</kbd> never again</p>
+      <p><kbd>▶</kbd> next &nbsp; <kbd>◀</kbd> back &nbsp; <kbd>OK</kbd> pause</p>
+      <p><kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels</p>
+    </div>
+    <div id="status"></div>
+    <div id="toast"></div>
+  </div>
+</div>
+<video id="keepawake" src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAABbzdXVpZNj+w9YbDkg8kpdYKId+xIEAAAAAbWFuaWZlc3QAAAAAAAAAAAAAABbGanVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAFqBqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOmNlYTc1MDFhLTQ1YmUtNGRjYy1iZmIzLTBlMjEwYjg4OWRmYgAAAAPYanVtYgAAAClqdW1kYzJhcwARABCAAACqADibcQNjMnBhLmFzc2VydGlvbnMAAAAAuGp1bWIAAABEanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5pbmdyZWRpZW50LnYzAAAAABhjMnNoMKVknS828rPGGGQVDJfc+wAAAGxjYm9yo2lkYzpmb3JtYXRpdmlkZW8vbXA0amluc3RhbmNlSUR4LHhtcDppaWQ6ZDhjZmU3NzYtODc1Ny00MzFlLTljYWMtZjZjMjk4ZjliMTZibHJlbGF0aW9uc2hpcGhwYXJlbnRPZgAAAeJqdW1iAAAAQWp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuYWN0aW9ucy52MgAAAAAYYzJzaGxMwAJe94bPrG1q4RGNNFMAAAGZY2JvcqJnYWN0aW9uc4KiZmFjdGlvbmtjMnBhLm9wZW5lZGpwYXJhbWV0ZXJzoWtpbmdyZWRpZW50c4GiY3VybHgtc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5pbmdyZWRpZW50LnYzZGhhc2hYIDgxFYNy34KVk4oMycBcJ9OG/sAsSawGDLh5rPdbirHlpGZhY3Rpb254HWNvbS5hbnRocm9waWMuY2xhdWRlLnByb3ZpZGVkanBhcmFtZXRlcnOheB9jb20uYW50aHJvcGljLm9yaWdpbi1jb25maWRlbmNlZ3Vua25vd25rZGVzY3JpcHRpb254ZkNsYXVkZSBwcm92aWRlZCB0aGlzIGZpbGUgYXQgdGhlIHJlcXVlc3Qgb2YgYSB1c2VyIGFuZCBtYXkgaGF2ZSBjcmVhdGVkIG9yIG1vZGlmaWVkIHRoZSBmaWxlIGNvbnRlbnRzLm1zb2Z0d2FyZUFnZW50oWRuYW1lZkNsYXVkZXJhbGxBY3Rpb25zSW5jbHVkZWT1AAABDWp1bWIAAABDanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5oYXNoLmJtZmYudjMAAAAAGGMyc2gXof/fRoo521vel/P19hCYAAAAwmNib3KkY2FsZ2ZzaGEyNTZkaGFzaFggqRvFduktT49zpQH3LMjV8pIojGY47Db2pTVyuw+p6RFkbmFtZW5qdW1iZiBtYW5pZmVzdGpleGNsdXNpb25zhaJkZGF0YYGiZXZhbHVlUNj+w9YbDkg8kpdYKId+xIFmb2Zmc2V0CGV4cGF0aGUvdXVpZKFleHBhdGhlL2Z0eXChZXhwYXRoZS9tZnJhoWV4cGF0aGUvZnJlZaFleHBhdGhlL3NraXAAAAJBanVtYgAAACdqdW1kYzJjbAARABCAAACqADibcQNjMnBhLmNsYWltLnYyAAAAAhJjYm9ypWNhbGdmc2hhMjU2aXNpZ25hdHVyZXhNc2VsZiNqdW1iZj0vYzJwYS91cm46YzJwYTpjZWE3NTAxYS00NWJlLTRkY2MtYmZiMy0wZTIxMGI4ODlkZmIvYzJwYS5zaWduYXR1cmVqaW5zdGFuY2VJRHgseG1wOmlpZDo2YjY5NDQyMC1jZTFkLTQxZTUtYWUyNC1iMTQ5MzZlOTM5ZmNyY3JlYXRlZF9hc3NlcnRpb25zg6JjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggODEVg3LfgpWTigzJwFwn04b+wCxJrAYMuHms91uKseWiY3VybHgqc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5hY3Rpb25zLnYyZGhhc2hYIAKAT0WQfGFIBMiQUjdJJ66NLvArv1SNj70k3nuIQoDNomN1cmx4LHNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaGFzaC5ibWZmLnYzZGhhc2hYIPiMsN0VAN2eKVfSVqjMf/d3V/R5FsTgweMuBBg4ThjWdGNsYWltX2dlbmVyYXRvcl9pbmZvo2RuYW1lb0FudGhyb3BpYyBGaWxlc2d2ZXJzaW9uZTEuMC4wa3NwZWNWZXJzaW9uZTIuNC4wAAAQOGp1bWIAAAAoanVtZGMyY3MAEQAQgAAAqgA4m3EDYzJwYS5zaWduYXR1cmUAAAAQCGNib3LShFkCEqIBJhghWQIKMIICBjCCAY2gAwIBAgIUQOWgCu7COdC+uIP6BkIFPWdVEwAwCgYIKoZIzj0EAwMwSTEXMBUGA1UEChMOQW50aHJvcGljLCBQQkMxLjAsBgNVBAMTJUFudGhyb3BpYyBDb250ZW50IENyZWRlbnRpYWxzIFJvb3QgQ0EwHhcNMjYwODA3MTg0MzU2WhcNMjgwODA2MTk0MzU2WjBEMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEpMCcGA1UEAxMgQW50aHJvcGljIENsYXVkZSBDb250ZW50IFNpZ25pbmcwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASYegpry1AYBRTVNL1CpTlbROnY3dey+UrsF9C3phYrATN3ZHf93Mo8RQN0KOUuOn19P4oWNFWe5n2/She9N7eTo1gwVjAOBgNVHQ8BAf8EBAMCB4AwFQYDVR0lBA4wDAYKKwYBBAGD6F4CATAMBgNVHRMBAf8EAjAAMB8GA1UdIwQYMBaAFM5R4gSBTmRbI/jjxM+aPpzB11zCMAoGCCqGSM49BAMDA2cAMGQCMDFzHRSeAXrSy1WOzkbhPZ6Km2wGTmZ/2gK18k8BQGXyqz88Rdrz6CTX9flAnYNVxgIwcF9c3fVhqmJKpi+UhasNUMko69cyX6STPfta3Q8EjyzDjzoyrol46FP6VFHhvUcJoWNwYWRZDZ4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2WEDX7wOTjvjw8THJfCSX2xW0UkGIdFSRmfoC0xUMbUIEm76knrYjeEZ9XLDoF9CstsYxTwxfQBw2PGd9uDMQJWS6AAADS21vb3YAAABsbXZoZAAAAAAAAAAAAAAAAAAAA+gAACcQAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAJ1dHJhawAAAFx0a2hkAAAAAwAAAAAAAAAAAAAAAQAAAAAAACcQAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAQAAAAEAAAAAAAJGVkdHMAAAAcZWxzdAAAAAAAAAABAAAnEAAAAAAAAQAAAAAB7W1kaWEAAAAgbWRoZAAAAAAAAAAAAAAAAAAAQAAAAoAAVcQAAAAAAC1oZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAZhtaW5mAAAAFHZtaGQAAAABAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAFYc3RibAAAALhzdHNkAAAAAAAAAAEAAACoYXZjMQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAQABAASAAAAEgAAAAAAAAAARVMYXZjNjAuMzEuMTAyIGxpYngyNjQAAAAAAAAAAAAAABj//wAAAC5hdmNDAULACv/hABZnQsAK2R7ARAAAAwAEAAADAAg8SJkgAQAFaMuDyyAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAACRwAAAkcAAAAYc3R0cwAAAAAAAAABAAAACgAAQAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAACgAAAAEAAAA8c3RzegAAAAAAAAAAAAAACgAAAoYAAAAKAAAACgAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAUc3RjbwAAAAAAAAABAAAabgAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAALhbWRhdAAAAnAGBf//bNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAOZYiEBf///w9FAAFXn4AAAAAGQZo4C/qAAAAABkGaVAL+oAAAAAVBmmAX9QAAAAVBmoAX9QAAAAVBmqAX9QAAAAVBmsAX9QAAAAVBmuAX9QAAAAVBmwAW9QAAAAVBmyAV9Q==" muted loop playsinline></video>
+<script>
+'use strict';
+
+/* ---------- Sources ----------
+   Each bucket pulls a random batch from an open-access collection, keeps only tall, sharp images,
+   and drops anything whose title matches the "not for a bedroom wall" list. */
+var WM = 'https://commons.wikimedia.org/w/api.php';
+var CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
+var BUCKETS = [
+  { id: 'land',  name: 'Landscapes',      kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 3 },
+  { id: 'arch',  name: 'Architecture',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 3 },
+  { id: 'port',  name: 'Portraits',       kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" portrait fileh:>2400', w: 2.5 },
+  { id: 'lpnt',  name: 'Landscape paintings', kind: 'art', src: 'wm', q: 'incategory:"Google_Art_Project_paintings" landscape fileh:>2400', w: 1.5 },
+  { id: 'abst',  name: 'Abstract',        kind: 'art',   src: 'wm',  q: 'deepcat:"Abstract paintings" fileh:>1600', w: 2 },
+  { id: 'paint', name: 'Paintings',       kind: 'art',   src: 'cma', q: 'type=Painting', w: 2.5 },
+  { id: 'print', name: 'Japanese prints', kind: 'art',   src: 'cma', q: 'type=Print&department=Japanese%20Art', w: 1.5 }
+];
+var SKIP_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
+var MIN_RATIO = 1.15;   // height divided by width, so only tall pictures
+var MIN_HEIGHT = 1500;
+
+/* ---------- Saved state on this TV ---------- */
+var KEY = 'art-wall-v1';
+var state = load();
+function load() {
+  var d = { rotate: 'none', interval: 90, labels: 'brief', likes: {}, never: {}, seen: [], boost: {} };
+  try { var s = JSON.parse(localStorage.getItem(KEY) || '{}'); for (var k in s) d[k] = s[k]; } catch (e) {}
+  return d;
+}
+function save() {
+  if (state.seen.length > 6000) state.seen = state.seen.slice(-4000);
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+var seenSet = {}; state.seen.forEach(function (c) { seenSet[c] = 1; });
+
+/* Ratings Claude adds from chat live in ratings.json next to this page. */
+var shared = { likes: [], never: [], boost: {} };
+fetch('ratings.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
+  .then(function (j) { if (j) shared = { likes: j.likes || [], never: j.never || [], boost: j.boost || {} }; })
+  .catch(function () {});
+function isNever(code) { return state.never[code] || shared.never.indexOf(code) >= 0; }
+
+function weightOf(b) {
+  var w = b.w * Math.pow(1.25, state.boost[b.id] || 0) * Math.pow(1.25, shared.boost[b.id] || 0);
+  return b.off && b.off > Date.now() ? 0 : Math.max(w, 0.2);
+}
+function pickBucket() {
+  var total = 0; BUCKETS.forEach(function (b) { total += weightOf(b); });
+  var r = Math.random() * total;
+  for (var i = 0; i < BUCKETS.length; i++) { r -= weightOf(BUCKETS[i]); if (r <= 0) return BUCKETS[i]; }
+  return BUCKETS[0];
+}
+
+/* ---------- Fetchers ---------- */
+function stripTags(s) { var d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
+function cleanTitle(t) { return t.replace(/^File:/, '').replace(/\.(jpe?g|png|tiff?)$/i, '').replace(/_/g, ' ').replace(/\s*-\s*Google Art Project.*$/i, '').replace(/\s*\(\d+\)$/, '').trim(); }
+
+function fetchWM(b) {
+  var p = { action: 'query', generator: 'search', gsrnamespace: 6, gsrsearch: b.q, gsrlimit: 30, gsrsort: 'random',
+            prop: 'imageinfo', iiprop: 'size|url|extmetadata', iiextmetadatafilter: 'Artist|LicenseShortName|ObjectName|DateTimeOriginal',
+            iiurlheight: 2560, format: 'json', formatversion: 2, origin: '*' };
+  var qs = Object.keys(p).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
+  return fetch(WM + '?' + qs).then(function (r) { return r.json(); }).then(function (j) {
+    var pages = (j.query && j.query.pages) || [];
+    return pages.map(function (pg) {
+      var ii = pg.imageinfo && pg.imageinfo[0]; if (!ii) return null;
+      var m = ii.extmetadata || {};
+      var title = cleanTitle(stripTags(m.ObjectName && m.ObjectName.value) || pg.title);
+      return { code: 'W' + pg.pageid.toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
+               w: ii.width, h: ii.height, url: ii.thumburl || ii.url, title: title,
+               credit: [stripTags(m.Artist && m.Artist.value), stripTags(m.LicenseShortName && m.LicenseShortName.value), 'Wikimedia Commons'].filter(Boolean).join(' · ') };
+    }).filter(Boolean);
+  });
+}
+
+var cmaTotals = {};
+function fetchCMA(b) {
+  var base = CMA + '?cc0=1&has_image=1&' + b.q + '&fields=id,title,creators,creation_date,images';
+  var total = cmaTotals[b.id] ? Promise.resolve(cmaTotals[b.id]) :
+    fetch(base + '&limit=1').then(function (r) { return r.json(); }).then(function (j) { return (cmaTotals[b.id] = j.info.total); });
+  return total.then(function (t) {
+    var skip = Math.floor(Math.random() * Math.max(1, t - 40));
+    return fetch(base + '&limit=40&skip=' + skip);
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    return (j.data || []).map(function (a) {
+      var im = a.images && (a.images.print || a.images.web); if (!im) return null;
+      var who = (a.creators && a.creators[0] && a.creators[0].description) || '';
+      who = who.replace(/\s*\(.*\)\s*$/, '');
+      return { code: 'C' + Number(a.id).toString(36).toUpperCase(), bucket: b.id, kind: b.kind,
+               w: +im.width, h: +im.height, url: im.url, title: a.title || 'Untitled',
+               credit: [who, a.creation_date, 'Cleveland Museum of Art'].filter(Boolean).join(' · ') };
+    }).filter(Boolean);
+  });
+}
+
+/* ---------- Queue ---------- */
+var queue = [], hist = [], pos = -1, filling = false, failures = 0;
+function fits(it) {
+  return it.h / it.w >= MIN_RATIO && it.h >= MIN_HEIGHT && !SKIP_WORDS.test(it.title) &&
+         !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
+}
+function fill() {
+  if (filling || queue.length >= 8) return;
+  filling = true;
+  var b = pickBucket();
+  (b.src === 'wm' ? fetchWM(b) : fetchCMA(b)).then(function (items) {
+    var good = items.filter(fits);
+    good.sort(function () { return Math.random() - .5; });
+    queue = queue.concat(good.slice(0, 4));   // a few per batch keeps the mix varied
+    failures = 0;
+  }).catch(function () {
+    b.off = Date.now() + 10 * 60 * 1000;      // rest a source that fails for ten minutes
+    failures++;
+    status(failures > 4 ? 'Having trouble reaching the art collections. Check the internet connection.' : '');
+  }).then(function () { filling = false; if (queue.length < 8) setTimeout(fill, 400); });
+}
+
+/* ---------- Display ---------- */
+var slides = [document.getElementById('s0'), document.getElementById('s1')], cur = 0;
+var started = false, paused = false, timer = null, freshTimer = null;
+
+function render(it) {
+  var img = new Image();
+  img.decoding = 'async';
+  img.onload = function () {
+    var next = slides[1 - cur];
+    next.innerHTML = '';
+    next.className = 'slide ' + (it.kind === 'art' ? 'art' : 'photo');
+    if (it.kind === 'art') {
+      var hang = document.createElement('div'); hang.className = 'hang'; img.className = ''; hang.appendChild(img); next.appendChild(hang);
+    } else { img.className = 'fill'; next.appendChild(img); }
+    var cap = document.createElement('div'); cap.className = 'caption';
+    var t = document.createElement('div'); t.className = 't'; t.textContent = it.title;
+    var c = document.createElement('div'); c.className = 'c'; c.textContent = it.credit;
+    var code = document.createElement('span'); code.className = 'code'; code.textContent = it.code;
+    c.appendChild(code); cap.appendChild(t); cap.appendChild(c); next.appendChild(cap);
+    next.offsetWidth;
+    next.classList.add('on', 'fresh');
+    slides[cur].classList.remove('on');
+    cur = 1 - cur;
+    clearTimeout(freshTimer);
+    freshTimer = setTimeout(function () { next.classList.remove('fresh'); }, 14000);
+    if (!seenSet[it.code]) { seenSet[it.code] = 1; state.seen.push(it.code); save(); }
+    schedule();
+  };
+  img.onerror = function () { forward(); };
+  img.src = it.url;
+}
+
+function forward() {
+  if (pos < hist.length - 1) { pos++; render(hist[pos]); return; }
+  var it = queue.shift();
+  fill();
+  if (!it) { status('Finding art…'); setTimeout(forward, 1500); return; }
+  status('');
+  hist.push(it); if (hist.length > 200) hist.shift();
+  pos = hist.length - 1;
+  render(it);
+}
+function back() { if (pos > 0) { pos--; render(hist[pos]); } }
+function schedule() { clearTimeout(timer); if (!paused) timer = setTimeout(forward, state.interval * 1000); }
+function current() { return hist[pos]; }
+
+/* ---------- Ratings ---------- */
+function like() {
+  var it = current(); if (!it) return;
+  state.likes[it.code] = { t: it.title, b: it.bucket };
+  state.boost[it.bucket] = Math.min((state.boost[it.bucket] || 0) + 1, 8);
+  save();
+  toast('More like this', bucketName(it.bucket));
+}
+function never() {
+  var it = current(); if (!it) return;
+  state.never[it.code] = 1;
+  state.boost[it.bucket] = Math.max((state.boost[it.bucket] || 0) - 0.5, -6);
+  delete state.likes[it.code];
+  save();
+  hist.splice(pos, 1); pos = hist.length;   // drop it from Back too
+  toast('Won’t show this again');
+  forward();
+}
+function bucketName(id) { for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i].id === id) return BUCKETS[i].name; return ''; }
+
+/* ---------- Screen ---------- */
+var stage = document.getElementById('stage');
+function layout() {
+  stage.classList.remove('turn-left', 'turn-right', 'wide');
+  if (state.rotate === 'left') stage.classList.add('turn-left');
+  if (state.rotate === 'right') stage.classList.add('turn-right');
+  var w = window.innerWidth, h = window.innerHeight;
+  var tall = state.rotate === 'none' ? h > w : w > h;
+  if (!tall) stage.classList.add('wide');
+  document.body.className = 'labels-' + state.labels;
+}
+window.addEventListener('resize', layout);
+
+var toastEl = document.getElementById('toast'), toastTimer;
+function toast(msg, sub) {
+  toastEl.textContent = msg;
+  if (sub) { var s = document.createElement('small'); s.textContent = sub; toastEl.appendChild(s); }
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1800);
+}
+var statusEl = document.getElementById('status');
+function status(msg) { statusEl.textContent = msg; }
+
+var wakeLock = null;
+function keepAwake() {
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {}); } catch (e) {}
+  var v = document.getElementById('keepawake'); var p = v.play(); if (p && p.catch) p.catch(function () {});
+}
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && started) keepAwake(); });
+function fullScreen() {
+  var el = document.documentElement;
+  try { (el.requestFullscreen || el.webkitRequestFullscreen || function () {}).call(el); } catch (e) {}
+}
+
+function start() {
+  if (started) return;
+  started = true;
+  document.getElementById('hint').classList.add('gone');
+  fullScreen(); keepAwake(); forward();
+}
+
+/* ---------- Remote keys ---------- */
+document.addEventListener('keydown', function (e) {
+  var k = e.key, c = e.keyCode;
+  if (!started) { if (k === 'Enter' || k === ' ' || c === 13) { e.preventDefault(); start(); } return; }
+  if (k === 'ArrowUp' || c === 38) { e.preventDefault(); like(); }
+  else if (k === 'ArrowDown' || c === 40) { e.preventDefault(); never(); }
+  else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); forward(); }
+  else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); back(); }
+  else if (k === 'Enter' || k === ' ' || c === 13) {
+    e.preventDefault(); paused = !paused; schedule(); toast(paused ? 'Paused' : 'Playing');
+    if (!paused) fullScreen();
+  }
+  else if (k === '1') { state.rotate = 'none'; save(); layout(); toast('Upright'); }
+  else if (k === '2') { state.rotate = 'left'; save(); layout(); toast('Turned left'); }
+  else if (k === '3') { state.rotate = 'right'; save(); layout(); toast('Turned right'); }
+  else if (k === '0') {
+    state.labels = state.labels === 'brief' ? 'always' : state.labels === 'always' ? 'off' : 'brief';
+    save(); layout(); toast('Labels: ' + { brief: 'for a moment', always: 'always', off: 'off' }[state.labels]);
+  }
+});
+document.addEventListener('click', function () { if (!started) start(); });
+
+/* Hidden cursor when the remote's pointer stops moving. */
+var idleTimer;
+document.addEventListener('mousemove', function () {
+  document.body.classList.remove('idle'); clearTimeout(idleTimer);
+  idleTimer = setTimeout(function () { document.body.classList.add('idle'); }, 3000);
+});
+
+/* Optional links: #rotate-left, #rotate-right, #upright, #every-30 (seconds) */
+function readHash() {
+  var h = location.hash.slice(1);
+  if (h === 'rotate-left') state.rotate = 'left';
+  else if (h === 'rotate-right') state.rotate = 'right';
+  else if (h === 'upright') state.rotate = 'none';
+  var m = h.match(/^every-(\d+)$/); if (m) state.interval = Math.max(10, +m[1]);
+  save(); layout();
+}
+window.addEventListener('hashchange', readHash);
+readHash();
+fill();
+</script>
+</body>
+</html>
