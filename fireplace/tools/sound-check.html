@@ -27,6 +27,20 @@ async function speech(buf){
   }
   return res;
 }
+async function voiced(buf){
+  // share of 40 ms frames with a strong pitch (80-330 Hz) in the 100-1000 Hz band; voices score high, fire scores near 0
+  var oc = new OfflineAudioContext(1, buf.length, buf.sampleRate), s = oc.createBufferSource(); s.buffer = buf;
+  var hp = oc.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=100; var lp = oc.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1000;
+  s.connect(hp); hp.connect(lp); lp.connect(oc.destination); s.start(); var d = (await oc.startRendering()).getChannelData(0);
+  var sr = buf.sampleRate, F = Math.round(sr*.04), step = Math.round(sr*.02), res = [], v = 0, n = 0, chunk = sr*5, next = chunk;
+  for (var a=0; a+F+Math.round(sr/80) < d.length; a+=step){
+    var e0=0; for (var i=a;i<a+F;i++) e0+=d[i]*d[i];
+    var best=0; for (var lag=Math.round(sr/330); lag<=Math.round(sr/80); lag+=2){ var c=0,e1=0; for (var i=a;i<a+F;i++){ c+=d[i]*d[i+lag]; e1+=d[i+lag]*d[i+lag]; } var r=c/Math.sqrt(e0*e1+1e-12); if (r>best) best=r; }
+    n++; if (best>0.75) v++;
+    if (a>=next){ res.push((v/n).toFixed(2)); v=0; n=0; next+=chunk; }
+  }
+  return res;
+}
 (async function(){
   var ac = new AudioContext();
   for (var c of C) {
@@ -44,6 +58,7 @@ async function speech(buf){
       lines.push('  bands '+bs.join(' | '));
       lines.push('  per-second '+sec.join(' '));
       lines.push('  speechiness per 5s '+(await speech(buf)).join(' '));
+      lines.push('  voiced share per 5s '+(await voiced(buf)).join(' '));
     } catch (er) { lines.push(c[0]+': ERROR '+er); }
     out.textContent = lines.join('\n');
   }
