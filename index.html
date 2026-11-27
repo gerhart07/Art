@@ -76,10 +76,8 @@ body.pointing #zones div:hover { background: rgba(0,0,0,.42); }
     <div id="hint">
       <h1>Art Wall</h1>
       <p>Press <kbd>OK</kbd> to start in full screen.</p>
-      <p><kbd>▲</kbd> more like this &nbsp; <kbd>▼</kbd> never again</p>
-      <p><kbd>▶</kbd> next &nbsp; <kbd>◀</kbd> back &nbsp; <kbd>5</kbd> or <kbd>⏯</kbd> pause</p>
-      <p>If a pointer shows instead, point at the top, bottom, sides or middle and press <kbd>OK</kbd>.</p>
-      <p><kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels</p>
+      <p>Then point and press <kbd>OK</kbd>: right side next, left side back, top more like this, bottom never again, middle pause.</p>
+      <p>Number keys: <kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels &nbsp; <kbd>9</kbd> help</p>
     </div>
     <div id="zones">
       <div class="top">♥ More like this</div>
@@ -87,9 +85,11 @@ body.pointing #zones div:hover { background: rgba(0,0,0,.42); }
       <div class="bottom">✕ Never show again</div>
     </div>
     <div id="help">
-      <div><b>With the arrow buttons:</b> up = more like this, down = never again, right = next, left = back.</div>
-      <div><b>If you see a pointer instead:</b> move it to the top, bottom, sides or middle of the picture and press OK.</div>
-      <div><b>5</b> or Play/Pause pauses. <b>OK</b> goes full screen.</div>
+      <div>Move the pointer onto the picture and press <b>OK</b>:</div>
+      <div><b>Right side</b> next &nbsp; <b>Left side</b> back</div>
+      <div><b>Top</b> more like this &nbsp; <b>Bottom</b> never show again</div>
+      <div><b>Middle</b> pause or play</div>
+      <div>Any OK also brings back full screen.</div>
     </div>
     <div id="status"></div>
     <div id="toast"></div>
@@ -367,13 +367,25 @@ document.addEventListener('click', function (e) {
   fullScreen();
   var z = e.target && e.target.closest ? e.target.closest('#zones > div') : null;
   if (!z) return;
+  flashZones();
   if (z.classList.contains('top')) like();
   else if (z.classList.contains('bottom')) never();
-  else if (z.classList.contains('left')) back();
-  else if (z.classList.contains('right')) forward();
+  else if (z.classList.contains('left')) { toast('◀ Back'); back(); }
+  else if (z.classList.contains('right')) { toast('Next ▶'); forward(); }
   else { paused = !paused; schedule(); toast(paused ? 'Paused' : 'Playing'); }
 });
 
+function flashZones() {
+  document.body.classList.add('pointing'); document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(function () { document.body.classList.add('idle'); document.body.classList.remove('pointing'); }, 4000);
+}
+/* Samsung's Back button: stay on the page instead of leaving it. */
+try { history.pushState({ wall: 1 }, ''); } catch (e) {}
+window.addEventListener('popstate', function () {
+  try { history.pushState({ wall: 1 }, ''); } catch (e) {}
+  if (started) toast('Press OK for full screen');
+});
 /* Hidden cursor when the remote's pointer stops moving. */
 var idleTimer;
 document.addEventListener('mousemove', function () {
