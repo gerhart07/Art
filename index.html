@@ -140,7 +140,7 @@ var BUCKETS = [
   { id: 'wild',  name: 'Remarkable places',   kind: 'photo', src: 'wm',  q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: WONDERS, blueOK: true, w: 4 },
   { id: 'sea',   name: 'Sea and coast',       kind: 'photo', src: 'wm',  q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: SEA, blueOK: true, w: 2.5 },
   { id: 'field', name: 'Meadows and fields',  kind: 'nature', src: 'wm', q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: FIELDS, w: 2.5 },
-  { id: 'flora', name: 'Flowers',             kind: 'nature', src: 'wm', q: 'deepcat:"Featured pictures of plants" fileh:>2400 filew:<3000', w: 2 },
+  { id: 'flora', name: 'Flowers',             kind: 'nature', src: 'wm', q: 'deepcat:"Featured pictures of plants" fileh:>2400 filew:<3000', w: 1.5 },
   { id: 'bloom', name: 'Nature up close',     kind: 'nature', src: 'wm', q: 'incategory:Quality_images {t} fileh:>2400 filew:<3000', terms: CLOSEUPS, w: 2.5 }
 ];
 var SKIP_WORDS = /\b(goats?|sheep|lambs?|deer|elephants?|lions?|tigers?|bears?|wolves|wolf|foxes|fox|zebras?|giraffes?|monkeys?|apes|camels?|donkeys?|pigs?|ducks?|geese|swans?|owls?|eagles?|seals?|whales?|dolphins?|penguins?|livestock|wildlife|fauna|zoo|ziegen|capra|ovis|bos|equus|canis|felis|panthera|cervus|nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
@@ -249,7 +249,7 @@ function fill() {
   (b.src === 'wm' ? fetchWM(b) : fetchCMA(b)).then(function (items) {
     var good = items.filter(fits);
     good.sort(function () { return Math.random() - .5; });
-    queue = queue.concat(good.slice(0, 4));   // a few per batch keeps the mix varied
+    queue = queue.concat(good.slice(0, 2));   // a few per batch keeps the mix varied
     failures = 0;
   }).catch(function () {
     b.off = Date.now() + 10 * 60 * 1000;      // rest a source that fails for ten minutes
