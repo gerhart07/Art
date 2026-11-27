@@ -668,6 +668,7 @@ var slides = [document.getElementById('s0'), document.getElementById('s1')], cur
 var started = false, paused = false, timer = null, freshTimer = null;
 
 function render(it) {
+  if (started) keepAwake();
   var img = new Image();
   img.decoding = 'async';
   var wm = /wikimedia\.org\//.test(it.url);
@@ -811,10 +812,20 @@ function status(msg) { statusEl.textContent = msg; }
 
 var wakeLock = null;
 function keepAwake() {
-  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {}); } catch (e) {}
-  var v = document.getElementById('keepawake'); var p = v.play(); if (p && p.catch) p.catch(function () {});
+  if (!wakeLock || wakeLock.released) {
+    try {
+      if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) {
+        wakeLock = l;
+        l.addEventListener && l.addEventListener('release', function () { wakeLock = null; if (started && document.visibilityState === 'visible') setTimeout(keepAwake, 1000); });
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  var v = document.getElementById('keepawake');
+  if (v.paused || v.ended) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
 }
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && started) keepAwake(); });
+// The TV's own screensaver watches for idle time, so re-assert keep-awake every minute, not just at start.
+setInterval(function () { if (started) keepAwake(); }, 60000);
 function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 var lastFs = 0;
 function fullScreen() {
