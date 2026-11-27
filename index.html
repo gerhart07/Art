@@ -111,25 +111,25 @@ body.started #zones button:focus { opacity: .95; background: rgba(0,0,0,.4); box
 var WM = 'https://commons.wikimedia.org/w/api.php';
 var CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
 var BUCKETS = [
-  { id: 'land',  name: 'Landscapes',      kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 2 },
-  { id: 'arch',  name: 'Architecture',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 2 },
-  { id: 'gap',   name: 'Classic paintings', kind: 'art',  src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" fileh:>2400', w: 4 },
-  { id: 'impr',  name: 'Impressionists',  kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" (Monet OR Renoir OR Pissarro OR Sisley OR Cézanne OR Gogh OR Degas OR Morisot OR Cassatt OR Seurat)', w: 1.5 },
-  { id: 'port',  name: 'Portraits',       kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" portrait fileh:>2400', w: 1 },
-  { id: 'lpnt',  name: 'Landscape paintings', kind: 'art', src: 'wm', q: 'incategory:"Google_Art_Project_paintings" landscape fileh:>2400', w: 1.5 },
-  { id: 'abst',  name: 'Abstract',        kind: 'art',   src: 'wm',  q: 'deepcat:"Abstract paintings" fileh:>1600', w: 2 },
-  { id: 'paint', name: 'Paintings',       kind: 'art',   src: 'cma', q: 'type=Painting', w: 3 },
-  { id: 'print', name: 'Japanese prints', kind: 'art',   src: 'cma', q: 'type=Print&department=Japanese%20Art', w: 1.5 }
+  { id: 'land',  name: 'Landscape photos',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 4 },
+  { id: 'lpnt',  name: 'Landscape paintings', kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" (landscape OR valley OR river OR mountain OR forest OR coast OR sea OR lake OR garden OR field OR harbor OR sunset) fileh:>2000 -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen', w: 5 },
+  { id: 'impr',  name: 'Impressionist landscapes', kind: 'art', src: 'wm', q: 'incategory:"Google_Art_Project_paintings" (Monet OR Renoir OR Pissarro OR Sisley OR Cézanne OR Gogh OR Morisot OR Seurat OR Caillebotte) (landscape OR garden OR river OR field OR sea OR snow OR bridge OR pond OR village OR road OR trees) -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen', w: 3 },
+  { id: 'cland', name: 'Landscape paintings', kind: 'art',   src: 'cma', q: 'type=Painting&q=landscape', w: 3 },
+  { id: 'abst',  name: 'Abstract',            kind: 'art',   src: 'wm',  q: 'deepcat:"Abstract paintings" fileh:>1600', w: 2.5 },
+  { id: 'print', name: 'Japanese prints',     kind: 'art',   src: 'cma', q: 'type=Print&department=Japanese%20Art&q=landscape', w: 1.5 },
+  { id: 'arch',  name: 'Architecture',        kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 1 }
 ];
 var SKIP_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
 /* Photos only: drop wildlife, plants, people and machines, judged from the file's Commons categories. */
 var BAD_CATS = /\b(birds?|animals?|mammals?|insects?|butterfl\w*|moths?|dragonfl\w*|spiders?|arachnids?|reptiles?|amphibians?|fish|fishes|molluscs?|invertebrates?|fungi|mushrooms?|flowers?|plants|orchids?|cattle|cows?|horses?|dogs?|cats|people|sportspeople|portraits?|aircraft|airplanes?|ships|warships|military|weapons?|cars|automobiles|trains|nude\w*)\b/i;
 var SPECIES_CAT = /Featured pictures of [A-Z][a-z]+ [a-z]+(\||$)/;
+/* Paintings: skip pictures of people, so the wall stays on places, nature and abstract work. */
+var PEOPLE = /\b(portrait|self-portrait|madonna|virgin|saint|st\.|christ|jesus|apostle|bishop|cardinal|pope|king|queen|prince|princess|duke|duchess|count|countess|lady|lord|mrs\.?|mr\.?|madame|monsieur|man|men|woman|women|girl|boy|child|children|family|mother|father|sister|brother|wife|husband|nun|monk|artist's|bust|head|figure|figures|dancer|dancers|bather|reader|nymph|holy|annunciation|adoration|nativity|magdalene|angel|angels)\b/i;
 var MIN_RATIO = 1.15;   // height divided by width, so only tall pictures
 var MIN_HEIGHT = 1500;
 
 /* ---------- Saved state on this TV ---------- */
-var KEY = 'art-wall-v1';
+var KEY = 'art-wall-v2';   // v2: no portraits, landscape-led mix (older likes reset)
 var state = load();
 function load() {
   var d = { rotate: 'none', interval: 90, labels: 'brief', likes: {}, never: {}, seen: [], boost: {} };
@@ -206,7 +206,8 @@ function fetchCMA(b) {
 /* ---------- Queue ---------- */
 var queue = [], hist = [], pos = -1, filling = false, failures = 0;
 function fits(it) {
-  return it.h / it.w >= MIN_RATIO && it.h >= MIN_HEIGHT && !SKIP_WORDS.test(it.title) &&
+  return !(it.kind === 'art' && PEOPLE.test(it.title)) &&
+         it.h / it.w >= MIN_RATIO && it.h >= MIN_HEIGHT && !SKIP_WORDS.test(it.title) &&
          !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
          !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
@@ -233,7 +234,10 @@ var started = false, paused = false, timer = null, freshTimer = null;
 function render(it) {
   var img = new Image();
   img.decoding = 'async';
+  var wm = /wikimedia\.org\//.test(it.url);
+  if (wm) img.crossOrigin = 'anonymous';
   img.onload = function () {
+    if (wm && !toneOK(img)) { seenSet[it.code] = 1; state.seen.push(it.code); forward(); return; }
     var next = slides[1 - cur];
     next.innerHTML = '';
     next.className = 'slide ' + (it.kind === 'art' ? 'art' : 'photo');
@@ -254,10 +258,24 @@ function render(it) {
     if (!seenSet[it.code]) { seenSet[it.code] = 1; state.seen.push(it.code); save(); }
     schedule();
   };
-  img.onerror = function () { forward(); };
+  img.onerror = function () {
+    if (wm) { wm = false; img.removeAttribute('crossorigin'); img.src = it.url + (it.url.indexOf('?') < 0 ? '?' : '&') + 'nc=1'; return; }  // retry without the color check
+    forward();
+  };
   img.src = it.url;
 }
 
+function toneOK(img) {
+  try {
+    var c = document.createElement('canvas'); c.width = 24; c.height = 36;
+    var g = c.getContext('2d'); g.drawImage(img, 0, 0, 24, 36);
+    var d = g.getImageData(0, 0, 24, 36).data, r = 0, gr = 0, b = 0, n = d.length / 4;
+    for (var i = 0; i < d.length; i += 4) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; }
+    r /= n; gr /= n; b /= n;
+    var lum = (0.2126 * r + 0.7152 * gr + 0.0722 * b) / 255;
+    return lum > 0.2 && b - r < 22;      // not murky, not cold blue
+  } catch (e) { return true; }
+}
 function forward() {
   if (pos < hist.length - 1) { pos++; render(hist[pos]); return; }
   var it = queue.shift();
