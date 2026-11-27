@@ -55,6 +55,16 @@ body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .captio
 #hint kbd { font-family: var(--label); color: var(--ink); border: 1px solid var(--ink-faint); border-radius: .6vmin; padding: 0 .6vmin; }
 #hint.gone { opacity: 0; pointer-events: none; }
 #status { position: absolute; left: 6%; right: 6%; top: 3%; font-size: clamp(11px, 1.3vmin, 18px); color: var(--ink-faint); text-align: center; }
+#zones { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 30% 40% 30%; grid-template-rows: 18% 64% 18%; z-index: 5; }
+#zones div { display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .4s, background .2s; font-size: clamp(16px, 2.4vmin, 36px); color: var(--ink); text-shadow: 0 1px 10px rgba(0,0,0,.9); }
+#zones .top { grid-column: 1 / 4; grid-row: 1; } #zones .bottom { grid-column: 1 / 4; grid-row: 3; }
+#zones .left { grid-column: 1; grid-row: 2; } #zones .mid { grid-column: 2; grid-row: 2; } #zones .right { grid-column: 3; grid-row: 2; }
+body.pointing #zones div { opacity: .9; background: rgba(0,0,0,.18); outline: 1px solid rgba(243,239,232,.12); }
+body.pointing #zones div:hover { background: rgba(0,0,0,.42); }
+#help { position: absolute; left: 8%; right: 8%; top: 50%; transform: translateY(-50%); background: var(--panel); border-radius: 1.6vmin; padding: 3vmin 4vmin; z-index: 6; opacity: 0; transition: opacity .6s; pointer-events: none; font-size: clamp(14px, 2vmin, 30px); line-height: 1.6; }
+#help.show { opacity: 1; }
+#help b { color: var(--accent); font-weight: 500; }
+#toast, #status { z-index: 7; }
 #keepawake { position: fixed; width: 2px; height: 2px; opacity: .01; pointer-events: none; left: 0; bottom: 0; }
 </style>
 </head>
@@ -68,7 +78,18 @@ body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .captio
       <p>Press <kbd>OK</kbd> to start in full screen.</p>
       <p><kbd>▲</kbd> more like this &nbsp; <kbd>▼</kbd> never again</p>
       <p><kbd>▶</kbd> next &nbsp; <kbd>◀</kbd> back &nbsp; <kbd>5</kbd> or <kbd>⏯</kbd> pause</p>
+      <p>If a pointer shows instead, point at the top, bottom, sides or middle and press <kbd>OK</kbd>.</p>
       <p><kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels</p>
+    </div>
+    <div id="zones">
+      <div class="top">♥ More like this</div>
+      <div class="left">◀ Back</div><div class="mid">❚❚ Pause / play</div><div class="right">Next ▶</div>
+      <div class="bottom">✕ Never show again</div>
+    </div>
+    <div id="help">
+      <div><b>With the arrow buttons:</b> up = more like this, down = never again, right = next, left = back.</div>
+      <div><b>If you see a pointer instead:</b> move it to the top, bottom, sides or middle of the picture and press OK.</div>
+      <div><b>5</b> or Play/Pause pauses. <b>OK</b> goes full screen.</div>
     </div>
     <div id="status"></div>
     <div id="toast"></div>
@@ -84,12 +105,14 @@ body.labels-always .slide.on .caption, body.labels-brief .slide.on.fresh .captio
 var WM = 'https://commons.wikimedia.org/w/api.php';
 var CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
 var BUCKETS = [
-  { id: 'land',  name: 'Landscapes',      kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 3 },
-  { id: 'arch',  name: 'Architecture',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 3 },
-  { id: 'port',  name: 'Portraits',       kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" portrait fileh:>2400', w: 2.5 },
+  { id: 'land',  name: 'Landscapes',      kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 2 },
+  { id: 'arch',  name: 'Architecture',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 2 },
+  { id: 'gap',   name: 'Classic paintings', kind: 'art',  src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" fileh:>2400', w: 4 },
+  { id: 'impr',  name: 'Impressionists',  kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" (Monet OR Renoir OR Pissarro OR Sisley OR Cézanne OR Gogh OR Degas OR Morisot OR Cassatt OR Seurat)', w: 1.5 },
+  { id: 'port',  name: 'Portraits',       kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" portrait fileh:>2400', w: 1 },
   { id: 'lpnt',  name: 'Landscape paintings', kind: 'art', src: 'wm', q: 'incategory:"Google_Art_Project_paintings" landscape fileh:>2400', w: 1.5 },
   { id: 'abst',  name: 'Abstract',        kind: 'art',   src: 'wm',  q: 'deepcat:"Abstract paintings" fileh:>1600', w: 2 },
-  { id: 'paint', name: 'Paintings',       kind: 'art',   src: 'cma', q: 'type=Painting', w: 2.5 },
+  { id: 'paint', name: 'Paintings',       kind: 'art',   src: 'cma', q: 'type=Painting', w: 3 },
   { id: 'print', name: 'Japanese prints', kind: 'art',   src: 'cma', q: 'type=Print&department=Japanese%20Art', w: 1.5 }
 ];
 var SKIP_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
@@ -272,7 +295,8 @@ function layout() {
   var w = window.innerWidth, h = window.innerHeight;
   var tall = state.rotate === 'none' ? h > w : w > h;
   if (!tall) stage.classList.add('wide');
-  document.body.className = 'labels-' + state.labels;
+  document.body.classList.remove('labels-brief', 'labels-always', 'labels-off');
+  document.body.classList.add('labels-' + state.labels);
 }
 window.addEventListener('resize', layout);
 
@@ -308,10 +332,13 @@ function start() {
   started = true;
   document.getElementById('hint').classList.add('gone');
   fullScreen(); keepAwake(); forward();
+  showHelp(9000);
 }
+var helpEl = document.getElementById('help'), helpTimer;
+function showHelp(ms) { helpEl.classList.add('show'); clearTimeout(helpTimer); helpTimer = setTimeout(function () { helpEl.classList.remove('show'); }, ms || 6000); }
 
 /* ---------- Remote keys ---------- */
-document.addEventListener('keydown', function (e) {
+window.addEventListener('keydown', function (e) {
   var k = e.key, c = e.keyCode;
   if (!started) { if (k === 'Enter' || k === ' ' || c === 13) { e.preventDefault(); start(); } return; }
   fullScreen();
@@ -333,14 +360,27 @@ document.addEventListener('keydown', function (e) {
     state.labels = state.labels === 'brief' ? 'always' : state.labels === 'always' ? 'off' : 'brief';
     save(); layout(); toast('Labels: ' + { brief: 'for a moment', always: 'always', off: 'off' }[state.labels]);
   }
+  else if (k === '9' || k === 'Info' || c === 457) { showHelp(8000); }
+}, true);
+document.addEventListener('click', function (e) {
+  if (!started) { start(); return; }
+  fullScreen();
+  var z = e.target && e.target.closest ? e.target.closest('#zones > div') : null;
+  if (!z) return;
+  if (z.classList.contains('top')) like();
+  else if (z.classList.contains('bottom')) never();
+  else if (z.classList.contains('left')) back();
+  else if (z.classList.contains('right')) forward();
+  else { paused = !paused; schedule(); toast(paused ? 'Paused' : 'Playing'); }
 });
-document.addEventListener('click', function () { if (!started) start(); else fullScreen(); });
 
 /* Hidden cursor when the remote's pointer stops moving. */
 var idleTimer;
 document.addEventListener('mousemove', function () {
-  document.body.classList.remove('idle'); clearTimeout(idleTimer);
-  idleTimer = setTimeout(function () { document.body.classList.add('idle'); }, 3000);
+  document.body.classList.remove('idle');
+  if (started) document.body.classList.add('pointing');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(function () { document.body.classList.add('idle'); document.body.classList.remove('pointing'); }, 4000);
 });
 
 /* Optional links: #rotate-left, #rotate-right, #upright, #every-30 (seconds) */
