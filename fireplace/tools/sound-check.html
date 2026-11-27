@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>Sound check</title>
+<pre id="o">working</pre>
+<script>
+var C = [
+ ['dry grass (current)','https://upload.wikimedia.org/wikipedia/commons/d/d8/Dry_grass_burning_in_open_fireplace.ogg'],
+ ['campfire ambience','https://upload.wikimedia.org/wikipedia/commons/b/b1/Campfire_sound_ambience.ogg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original'],
+ ['wws bonfire','https://upload.wikimedia.org/wikipedia/commons/7/70/WWS_Bonfireburning.ogg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original']
+];
+var out = document.getElementById('o'), lines = [];
+function db(x){return (20*Math.log10(x+1e-9)).toFixed(1)}
+async function band(buf, type, f, q){
+  var oc = new OfflineAudioContext(1, buf.length, buf.sampleRate), s = oc.createBufferSource(); s.buffer = buf;
+  var n = s; if (type) { var b = oc.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q) b.Q.value = q; s.connect(b); n = b; }
+  n.connect(oc.destination); s.start(); var r = await oc.startRendering(); var d = r.getChannelData(0), e = 0; for (var i=0;i<d.length;i++) e += d[i]*d[i]; return Math.sqrt(e/d.length);
+}
+(async function(){
+  var ac = new AudioContext();
+  for (var c of C) {
+    try {
+      var buf = await ac.decodeAudioData(await (await fetch(c[1])).arrayBuffer());
+      var d = buf.getChannelData(0), pk = 0, e = 0; for (var i=0;i<d.length;i++){var a=Math.abs(d[i]); if(a>pk)pk=a; e+=d[i]*d[i];}
+      var rms = Math.sqrt(e/d.length);
+      // per-second rms to see loud events and gaps
+      var sec = [], N = buf.sampleRate; for (var s0=0; s0+N<=d.length; s0+=N){var q=0; for (var j=s0;j<s0+N;j++) q+=d[j]*d[j]; sec.push(db(Math.sqrt(q/N)));}
+      // transients per second: 10ms windows jumping 9 dB over previous
+      var W = Math.round(N/100), prev = 1e-6, t = 0; for (var k=0;k+W<=d.length;k+=W){var m=0; for (var j=k;j<k+W;j++){var a=Math.abs(d[j]); if(a>m)m=a;} if (m > prev*2.8 && m > rms*2) t++; prev = Math.max(m, 1e-6);}
+      var bands = [['<150','lowpass',150],['150-500','bandpass',275,0.8],['500-2k','bandpass',1000,0.7],['2k-6k','bandpass',3500,0.8],['>6k','highpass',6000]];
+      var bs = []; for (var b of bands) bs.push(b[0]+' '+db(await band(buf,b[1],b[2],b[3])));
+      lines.push(c[0]+': '+buf.duration.toFixed(1)+'s '+buf.sampleRate+'Hz ch'+buf.numberOfChannels+' rms '+db(rms)+' peak '+db(pk)+' crest '+(20*Math.log10(pk/rms)).toFixed(1)+' clicks/s '+(t/buf.duration).toFixed(1));
+      lines.push('  bands '+bs.join(' | '));
+      lines.push('  per-second '+sec.join(' '));
+    } catch (er) { lines.push(c[0]+': ERROR '+er); }
+    out.textContent = lines.join('\n');
+  }
+  out.textContent = lines.join('\n') + '\nDONE';
+})();
+</script>
