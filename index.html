@@ -114,6 +114,11 @@ var CITIES = ['Paris', 'Montmartre', 'Seine', 'Prague', 'Budapest', 'Oslo', 'Ber
   'Florence', 'Venice', 'Rome', 'Lisbon', 'Porto', 'Seville', 'Edinburgh', 'Copenhagen', 'Amsterdam', 'Bruges', 'Kraków', 'Ljubljana', 'Tallinn'];
 var PAINTED_CITIES = ['Paris', 'Seine', 'Venice', 'Canaletto', 'Guardi', 'Caillebotte', 'Pissarro', 'boulevard', 'Hammershøi', 'Amsterdam',
   'Rome', 'Florence', 'Prague', 'Vienna', 'canal', 'bridge', 'street', 'rooftops'];
+var WONDERS = ['waterfall', 'desert', 'dunes', 'canyon', 'glacier', 'fjord', 'volcano', 'cave', 'geyser', 'salt flat', 'karst', 'rock formation',
+  'natural arch', 'cliffs', 'iceberg', 'aurora', 'hot spring', 'lagoon', 'gorge', 'plateau', 'Iceland', 'Patagonia', 'Dolomites', 'Utah', 'Namib'];
+var SEA = ['ocean', 'sea', 'coast', 'beach', 'waves', 'lighthouse', 'bay', 'shore', 'tide'];
+var FIELDS = ['meadow', 'field', 'lavender', 'wildflowers', 'poppies', 'sunflowers', 'tulip field', 'rice terraces', 'vineyard', 'heather', 'wheat', 'orchard'];
+var CLOSEUPS = ['blossom', 'petals', 'dew', 'frost', 'fern', 'moss', 'lotus', 'water lily', 'magnolia', 'cherry blossom', 'peony', 'rose', 'leaves autumn', 'wisteria', 'dandelion'];
 var BUCKETS = [
   { id: 'land',  name: 'Landscape photos',    kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of landscapes" fileh:>2400 filew:<3000', w: 4 },
   { id: 'lpnt',  name: 'Landscape paintings', kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" (landscape OR valley OR river OR mountain OR forest OR coast OR sea OR lake OR garden OR field OR harbor OR sunset) fileh:>2000 -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen', w: 5 },
@@ -124,11 +129,18 @@ var BUCKETS = [
   { id: 'city',  name: 'European cities',     kind: 'photo', src: 'wm',  q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: CITIES, w: 3 },
   { id: 'cityq', name: 'European cities',     kind: 'photo', src: 'wm',  q: 'incategory:Quality_images {t} fileh:>2400 filew:<3000', terms: CITIES, w: 3 },
   { id: 'cpnt',  name: 'Painted city views',  kind: 'art',   src: 'wm',  q: 'incategory:"Google_Art_Project_paintings" {t} -portrait -"self-portrait" -madonna -virgin -saint -christ -king -queen', terms: PAINTED_CITIES, w: 3 },
-  { id: 'arch',  name: 'Architecture',        kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 1 }
+  { id: 'arch',  name: 'Architecture',        kind: 'photo', src: 'wm',  q: 'deepcat:"Featured pictures of architecture" fileh:>2400 filew:<3000', w: 1 },
+  { id: 'wild',  name: 'Remarkable places',   kind: 'photo', src: 'wm',  q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: WONDERS, blueOK: true, w: 4 },
+  { id: 'sea',   name: 'Sea and coast',       kind: 'photo', src: 'wm',  q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: SEA, blueOK: true, w: 2.5 },
+  { id: 'field', name: 'Meadows and fields',  kind: 'nature', src: 'wm', q: 'incategory:Featured_pictures_on_Wikimedia_Commons {t} fileh:>2000', terms: FIELDS, w: 2.5 },
+  { id: 'flora', name: 'Flowers',             kind: 'nature', src: 'wm', q: 'deepcat:"Featured pictures of plants" fileh:>2400 filew:<3000', w: 2 },
+  { id: 'bloom', name: 'Nature up close',     kind: 'nature', src: 'wm', q: 'incategory:Quality_images {t} fileh:>2400 filew:<3000', terms: CLOSEUPS, w: 2.5 }
 ];
 var SKIP_WORDS = /\b(nudes?|naked|bathers?|bathing|venus|leda|susanna|odalisque|crucifi\w*|martyr\w*|massacre|death|dead|corpse|skulls?|battle|war|execution|behead\w*|judith|holofernes|hunt|hunting|slaughter|wound\w*|blood\w*|hell|inferno|tortur\w*|lamentation|entombment|piet[aà]|birds?|kestrel|falco|insects?|spiders?|snakes?|animals?|maps?|diagram|logo)\b/i;
 /* Photos only: drop wildlife, plants, people and machines, judged from the file's Commons categories. */
 var BAD_CATS = /\b(birds?|animals?|mammals?|insects?|butterfl\w*|moths?|dragonfl\w*|spiders?|arachnids?|reptiles?|amphibians?|fish|fishes|molluscs?|invertebrates?|fungi|mushrooms?|flowers?|plants|orchids?|cattle|cows?|horses?|dogs?|cats|people|sportspeople|portraits?|aircraft|airplanes?|ships|warships|military|weapons?|cars|automobiles|trains|nude\w*)\b/i;
+/* Nature buckets allow flowers and plants, but still skip wildlife, people and machines. */
+var NATURE_BAD = /\b(birds?|animals?|mammals?|insects?|butterfl\w*|moths?|dragonfl\w*|bees?|spiders?|arachnids?|reptiles?|amphibians?|fish|fishes|molluscs?|invertebrates?|cattle|cows?|horses?|dogs?|cats|people|sportspeople|portraits?|aircraft|airplanes?|warships|military|weapons?|cars|automobiles|trains|nude\w*|herbarium|specimens?|microscop\w*)\b/i;
 var SPECIES_CAT = /Featured pictures of [A-Z][a-z]+ [a-z]+(\||$)/;
 /* Paintings: skip pictures of people, so the wall stays on places, nature and abstract work. */
 var PEOPLE = /\b(portrait|self-portrait|madonna|virgin|saint|st\.|christ|jesus|apostle|bishop|cardinal|pope|king|queen|prince|princess|duke|duchess|count|countess|lady|lord|mrs\.?|mr\.?|madame|monsieur|man|men|woman|women|girl|boy|child|children|family|mother|father|sister|brother|wife|husband|nun|monk|artist's|bust|head|figure|figures|dancer|dancers|bather|reader|nymph|holy|annunciation|adoration|nativity|magdalene|angel|angels)\b/i;
@@ -217,6 +229,7 @@ function fits(it) {
   return !(it.kind === 'art' && PEOPLE.test(it.title)) &&
          it.h / it.w >= MIN_RATIO && it.h >= MIN_HEIGHT && !SKIP_WORDS.test(it.title) &&
          !(it.kind === 'photo' && it.cats && (BAD_CATS.test(it.cats) || SPECIES_CAT.test(it.cats))) &&
+         !(it.kind === 'nature' && it.cats && NATURE_BAD.test(it.cats)) &&
          !seenSet[it.code] && !isNever(it.code) && !queue.some(function (q) { return q.code === it.code; });
 }
 function fill() {
@@ -245,7 +258,7 @@ function render(it) {
   var wm = /wikimedia\.org\//.test(it.url);
   if (wm) img.crossOrigin = 'anonymous';
   img.onload = function () {
-    if (wm && !toneOK(img)) { seenSet[it.code] = 1; state.seen.push(it.code); forward(); return; }
+    if (wm && !toneOK(img, bucketOf(it.bucket).blueOK)) { seenSet[it.code] = 1; state.seen.push(it.code); forward(); return; }
     var next = slides[1 - cur];
     next.innerHTML = '';
     next.className = 'slide ' + (it.kind === 'art' ? 'art' : 'photo');
@@ -273,7 +286,7 @@ function render(it) {
   img.src = it.url;
 }
 
-function toneOK(img) {
+function toneOK(img, blueOK) {
   try {
     var c = document.createElement('canvas'); c.width = 24; c.height = 36;
     var g = c.getContext('2d'); g.drawImage(img, 0, 0, 24, 36);
@@ -281,7 +294,7 @@ function toneOK(img) {
     for (var i = 0; i < d.length; i += 4) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; }
     r /= n; gr /= n; b /= n;
     var lum = (0.2126 * r + 0.7152 * gr + 0.0722 * b) / 255;
-    return lum > 0.2 && b - r < 22;      // not murky, not cold blue
+    return lum > 0.2 && (blueOK || b - r < 22);      // not murky; not cold blue, except sea and ice
   } catch (e) { return true; }
 }
 function forward() {
@@ -316,6 +329,7 @@ function never() {
   toast('Won’t show this again');
   forward();
 }
+function bucketOf(id) { for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i].id === id) return BUCKETS[i]; return {}; }
 function bucketName(id) { for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i].id === id) return BUCKETS[i].name; return ''; }
 
 /* ---------- Screen ---------- */
