@@ -56,9 +56,14 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
 .placard .t { font-family: var(--serif); font-style: italic; font-size: 1.12em; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
 .placard .by { overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
 .placard .code { opacity: .55; letter-spacing: .1em; flex-shrink: 0; }
-#toast { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%) scale(.96); padding: 2vmin 3.4vmin; border-radius: 1.4vmin; background: var(--panel); font-size: clamp(16px, 2.6vmin, 40px); opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; text-align: center; white-space: nowrap; }
-#toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-#toast small { display: block; margin-top: .6vmin; font-size: .55em; color: var(--ink-soft); }
+#focus { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; outline: none; -webkit-tap-highlight-color: transparent; }
+#focus:focus { outline: none; box-shadow: none; }
+/* Feedback word: quiet, in the top mat, never over the art. */
+#toast { position: absolute; left: var(--mat); right: var(--mat); top: 0; height: var(--mat); display: flex; align-items: center; justify-content: center; gap: .8em;
+  font-size: max(10px, calc(var(--mat) * .4)); letter-spacing: .08em; text-transform: uppercase; color: var(--label-ink); opacity: 0; transition: opacity .25s;
+  pointer-events: none; white-space: nowrap; overflow: hidden; }
+#toast.show { opacity: 1; }
+#toast small { font-size: .85em; opacity: .7; text-transform: none; letter-spacing: .02em; }
 
 #hint { position: absolute; left: 6%; right: 6%; top: 50%; transform: translateY(-50%); text-align: center; transition: opacity 1s; background: var(--panel); border-radius: 1.6vmin; padding: 4vmin 3vmin; }
 #hint h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 5vmin, 72px); margin: 0 0 3vmin; }
@@ -66,13 +71,6 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
 #hint kbd { font-family: var(--label); color: var(--ink); border: 1px solid var(--ink-faint); border-radius: .6vmin; padding: 0 .6vmin; }
 #hint.gone { opacity: 0; pointer-events: none; }
 #status { position: absolute; left: 6%; right: 6%; top: 3%; font-size: clamp(11px, 1.3vmin, 18px); color: var(--ink-faint); text-align: center; }
-#zones { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 30% 40% 30%; grid-template-rows: 18% 64% 18%; z-index: 5; }
-#zones button { display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .4s, background .2s; font-size: clamp(16px, 2.4vmin, 36px); color: var(--ink); text-shadow: 0 1px 10px rgba(0,0,0,.9); }
-#zones .top { grid-column: 1 / 4; grid-row: 1; } #zones .bottom { grid-column: 1 / 4; grid-row: 3; }
-#zones .left { grid-column: 1; grid-row: 2; } #zones .mid { grid-column: 2; grid-row: 2; } #zones .right { grid-column: 3; grid-row: 2; }
-#zones button { border: 0; margin: 0; padding: 0; background: transparent; font-family: var(--label); cursor: pointer; -webkit-appearance: none; appearance: none; }
-/* The click zones are a silent fallback: nothing about them ever shows over the art. */
-#zones button, #zones button:hover, #zones button:focus, #zones button:active { opacity: 0 !important; outline: none; box-shadow: none; background: transparent; -webkit-tap-highlight-color: transparent; }
 #help { position: absolute; left: 8%; right: 8%; top: 50%; transform: translateY(-50%); background: var(--panel); border-radius: 1.6vmin; padding: 3vmin 4vmin; z-index: 6; opacity: 0; transition: opacity .6s; pointer-events: none; font-size: clamp(14px, 2vmin, 30px); line-height: 1.6; }
 #help.show { opacity: 1; }
 #help b { color: var(--accent); font-weight: 500; }
@@ -92,11 +90,7 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
       <p>Then press <kbd>OK</kbd> again for the blue circle, and use the arrows: <kbd>▶</kbd> next, <kbd>◀</kbd> back, <kbd>▲</kbd> more like this, <kbd>▼</kbd> never again.</p>
       <p>Number keys: <kbd>1</kbd> upright &nbsp; <kbd>2</kbd> turn left &nbsp; <kbd>3</kbd> turn right &nbsp; <kbd>0</kbd> labels &nbsp; <kbd>8</kbd> mat color &nbsp; <kbd>9</kbd> help</p>
     </div>
-    <div id="zones">
-      <button class="top" tabindex="0">♥ More like this</button>
-      <button class="left" tabindex="0">◀ Back</button><button class="mid" tabindex="0">❚❚ Pause / play</button><button class="right" tabindex="0">Next ▶</button>
-      <button class="bottom" tabindex="0">✕ Never show again</button>
-    </div>
+    <div id="focus" tabindex="0" aria-label="Art wall"></div>
     <div id="help">
       <div>Press <b>OK</b> once so the pointer becomes the blue circle. Then:</div>
       <div><b>▶</b> next &nbsp; <b>◀</b> back</div>
@@ -344,7 +338,7 @@ function like() {
   state.likes[it.code] = { t: it.title, b: it.bucket };
   state.boost[it.bucket] = Math.min((state.boost[it.bucket] || 0) + 1, 8);
   save();
-  toast('More like this', bucketName(it.bucket));
+  if (!debug) toast('More like this', bucketName(it.bucket));
 }
 function never() {
   var it = current(); if (!it) return;
@@ -353,7 +347,7 @@ function never() {
   delete state.likes[it.code];
   save();
   hist.splice(pos, 1); pos = hist.length;   // drop it from Back too
-  toast('Won’t show this again');
+  if (!debug) toast('Never again');
   forward();
 }
 function bucketOf(id) { for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i].id === id) return BUCKETS[i]; return {}; }
@@ -395,7 +389,7 @@ function toast(msg, sub) {
   toastEl.textContent = msg;
   if (sub) { var s = document.createElement('small'); s.textContent = sub; toastEl.appendChild(s); }
   toastEl.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1800);
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1600);
 }
 var statusEl = document.getElementById('status');
 function status(msg) { statusEl.textContent = msg; }
@@ -419,11 +413,14 @@ function fullScreen() {
   } catch (e) {}
 }
 
+var focusEl = document.getElementById('focus');
+function focusLayer() { try { focusEl.focus({ preventScroll: true }); } catch (e) { try { focusEl.focus(); } catch (e2) {} } }
+var debug = false;
 function start() {
   if (started) return;
   started = true;
   document.body.classList.add('started');
-  try { document.querySelector('#zones .mid').focus(); } catch (e) {}
+  focusLayer();
   document.getElementById('hint').classList.add('gone');
   fullScreen(); keepAwake(); forward(); centerScroll();
   showHelp(9000);
@@ -434,13 +431,14 @@ function showHelp(ms) { helpEl.classList.add('show'); clearTimeout(helpTimer); h
 /* ---------- Remote keys ---------- */
 window.addEventListener('keydown', function (e) {
   var k = e.key, c = e.keyCode;
+  if (debug) toast('Key ' + (k || '?'), 'code ' + c);
   if (!started) { if (k === 'Enter' || k === ' ' || c === 13) { e.preventDefault(); start(); } return; }
   fullScreen();
   if (k === 'ArrowUp' || c === 38) { e.preventDefault(); like(); }
   else if (k === 'ArrowDown' || c === 40) { e.preventDefault(); never(); }
-  else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); forward(); }
-  else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); back(); }
-  else if (k === 'Enter' || c === 13) { if (!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#zones'))) { e.preventDefault(); fullScreen(); } }
+  else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); say('Next'); forward(); }
+  else if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); say('Back'); back(); }
+  else if (k === 'Enter' || c === 13) { e.preventDefault(); fullScreen(); focusLayer(); }
   else if (k === '5' || k === ' ' || k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause' ||
            c === 10252 || c === 415 || c === 19 || c === 179) {
     e.preventDefault();
@@ -455,26 +453,17 @@ window.addEventListener('keydown', function (e) {
     save(); layout(); toast('Labels: ' + { brief: 'for a moment', always: 'always', off: 'off' }[state.labels]);
   }
   else if (k === '8') { state.mat = ((state.mat || 0) + 1) % MATS.length; save(); layout(); toast('Mat: ' + MATS[state.mat].name); }
+  else if (k === '7') { debug = !debug; toast(debug ? 'Key check on' : 'Key check off', debug ? 'press any button' : ''); }
   else if (k === '9' || k === 'Info' || c === 457) { showHelp(8000); }
 }, true);
-document.addEventListener('click', function (e) {
+document.addEventListener('click', function () {
   if (!started) { start(); return; }
-  if (!isFull() && Date.now() - lastFs > 10000) { fullScreen(); flashZones(); return; }   // this OK only brings full screen back
-  var z = e.target && e.target.closest ? e.target.closest('#zones > button') : null;
-  if (!z) return;
-  flashZones();
-  if (z.classList.contains('top')) like();
-  else if (z.classList.contains('bottom')) never();
-  else if (z.classList.contains('left')) { toast('◀ Back'); back(); }
-  else if (z.classList.contains('right')) { toast('Next ▶'); forward(); }
-  else { paused = !paused; schedule(); toast(paused ? 'Paused' : 'Playing'); }
+  if (debug) toast('Click');
+  if (!isFull()) fullScreen();
+  focusLayer();
 });
+function say(word) { if (!debug) toast(word); }
 
-function flashZones() {
-  document.body.classList.add('pointing'); document.body.classList.remove('idle');
-  clearTimeout(idleTimer);
-  idleTimer = setTimeout(function () { document.body.classList.add('idle'); document.body.classList.remove('pointing'); }, 4000);
-}
 /* Samsung's blue-circle mode scrolls the page with the arrows. Read each nudge as a command, then re-center. */
 var scrollReady = false, scrollBusy = false;
 function centerScroll() {
@@ -487,7 +476,8 @@ window.addEventListener('scroll', function () {
   var dx = window.scrollX - window.innerWidth, dy = window.scrollY - window.innerHeight;
   if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
   scrollBusy = true;
-  if (Math.abs(dx) >= Math.abs(dy)) { if (dx > 0) { toast('Next ▶'); forward(); } else { toast('◀ Back'); back(); } }
+  if (debug) toast('Scroll', 'x ' + Math.round(dx) + ', y ' + Math.round(dy));
+  if (Math.abs(dx) >= Math.abs(dy)) { if (dx > 0) { say('Next'); forward(); } else { say('Back'); back(); } }
   else { if (dy > 0) never(); else like(); }
   setTimeout(function () { scrollBusy = false; centerScroll(); }, 600);
 }, { passive: true });
@@ -502,9 +492,8 @@ window.addEventListener('popstate', function () {
 var idleTimer;
 document.addEventListener('mousemove', function () {
   document.body.classList.remove('idle');
-  if (started) document.body.classList.add('pointing');
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(function () { document.body.classList.add('idle'); document.body.classList.remove('pointing'); }, 4000);
+  idleTimer = setTimeout(function () { document.body.classList.add('idle'); }, 4000);
 });
 
 /* Optional links: #rotate-left, #rotate-right, #upright, #every-30 (seconds) */
