@@ -7,7 +7,7 @@ for f in sys.argv[1:]:
         parts = [x.strip() for x in line.split('|')]
         if len(parts) < 2 or not parts[0] or parts[0] in seen: continue
         seen.add(parts[0])
-        tags = parts[2] if len(parts) > 2 else ''
+        tags = ' '.join((parts[2] if len(parts) > 2 else '').replace(',', ' ').split())
         fx, fy = 50, 50
         if len(parts) > 3 and ',' in parts[3]:
             try: fx, fy = [int(round(float(v))) for v in parts[3].split(',')[:2]]
