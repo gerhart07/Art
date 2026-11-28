@@ -575,11 +575,31 @@ function fetchWM(b) {
 }
 
 /* Curated picks: draw a few titles from the pool, skipping ones shown recently, and ask Commons for their image links. */
+/* A "right now" pick wears the mat and the quiet top line for the reason it matched: the hour first, then the weather, then the season. */
+function pickWhy(tags) {
+  var et = (tags || '').split(/\s+/), has = function (list) { return list.some(function (x) { return et.indexOf(x) >= 0; }); };
+  var k = hourKey(), h = hourNow();
+  if (k === 'morning' && has(['sunrise', 'morning', 'fog'])) return whyHour();
+  if (k === 'evening' && has(['sunset', 'evening'])) return whyHour();
+  if ((h > sun.set + 1 || h < sun.rise - 1) && has(['night'])) return { line: HOUR_LINES.night, mat: HOUR_MATS.night };
+  var wt = { fog: ['fog'], rain: ['rain', 'storm'], snow: ['snow'], cloudy: ['storm', 'fog'] }[wx];
+  if (wt && has(wt)) return whyWeather();
+  var sk = seasonKey();
+  if (has([sk]) || (sk === 'winter' && has(['snow']))) return { line: seasonLine(), mat: SEASON_MATS[sk] };
+  return null;
+}
 function recentPicks() { return state.pseen || (state.pseen = []); }
+/* The list plays like a shuffled deck: every pick shows once before any comes back.
+   A strand that has used up its share borrows an unseen pick from another strand instead of repeating.
+   Sunrises and sunsets outside their hour are left in the deck for later, not used up. */
+function pickTimeOK(e) { return sunOK({ title: e[0], cats: e[2] || '' }); }
 function fetchPick(b) {
-  var pool = pickPool(b), recent = recentPicks(), keep = Math.floor((window.PICKS || []).length * .7);
-  var fresh = pool.filter(function (e) { return recent.indexOf(e[0]) < 0; });
-  if (!fresh.length) fresh = pool;
+  var all = window.PICKS || [], recent = recentPicks(), keep = Math.max(0, all.length - 12);
+  var unseen = function (e) { return recent.indexOf(e[0]) < 0 && pickTimeOK(e) && queue.every(function (q) { return q.pick !== e[0]; }); };
+  var fresh = pickPool(b).filter(unseen);
+  if (!fresh.length) fresh = all.filter(unseen);
+  if (!fresh.length) { recent.splice(0, recent.length - 12); fresh = all.filter(unseen); }
+  if (!fresh.length) fresh = all.filter(pickTimeOK);
   fresh.sort(function () { return Math.random() - .5; });
   var take = fresh.slice(0, 2), byTitle = {};
   take.forEach(function (e) { byTitle['File:' + e[0]] = e; });
@@ -594,7 +614,7 @@ function fetchPick(b) {
       var m = ii.extmetadata || {}, art = e[1] === 'paint';
       var title = cleanTitle(art ? pg.title : (stripTags(m.ObjectName && m.ObjectName.value) || pg.title));
       return { code: 'W' + pg.pageid.toString(36).toUpperCase(), bucket: b.id, kind: art ? 'art' : 'photo', cur: true, pick: e[0],
-               fx: e[3] == null ? 50 : e[3], fy: e[4] == null ? 50 : e[4], cats: e[2] || '',
+               fx: e[3] == null ? 50 : e[3], fy: e[4] == null ? 50 : e[4], cats: e[2] || '', why: b.now ? pickWhy(e[2]) : null,
                w: ii.width, h: ii.height, url: ii.thumburl || ii.url, title: title,
                by: shortName(stripTags(m.Artist && m.Artist.value)),
                credit: [stripTags(m.Artist && m.Artist.value), stripTags(m.LicenseShortName && m.LicenseShortName.value), 'Wikimedia Commons'].filter(Boolean).join(' · ') };
