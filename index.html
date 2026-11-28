@@ -42,7 +42,8 @@ body.idle, body.idle * { cursor: none !important; }
 .slide { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity var(--fade) ease-in-out;
   background: radial-gradient(ellipse at 50% 35%, rgba(255,255,255,.07), rgba(0,0,0,.10) 85%), var(--mat-color); }
 /* Frame-style mat: the same width of mat on all four sides, with a thin light bevel and a soft recess. */
-.window { position: absolute; top: var(--mat); left: var(--mat); right: var(--mat); bottom: var(--mat); overflow: hidden; background: #2a2622;
+.window { position: absolute; top: calc(var(--mat) + var(--my, 0px)); left: calc(var(--mat) + var(--mx, 0px)); right: calc(var(--mat) - var(--mx, 0px)); bottom: calc(var(--mat) - var(--my, 0px)); overflow: hidden; background: #2a2622;
+  transition: top 40s ease-in-out, left 40s ease-in-out, right 40s ease-in-out, bottom 40s ease-in-out;
   box-shadow: 0 0 0 2px var(--bevel), 0 0 0 3px rgba(0,0,0,.10); }
 .window::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 2;
   box-shadow: inset 0 .5vmin 1.2vmin rgba(0,0,0,.38), inset 0 0 .3vmin rgba(0,0,0,.25); }
@@ -50,7 +51,7 @@ body.idle, body.idle * { cursor: none !important; }
 .slide.on { opacity: 1; }
 .slide.photo .window img { animation: drift 120s ease-in-out infinite alternate; }
 @keyframes drift { from { transform: scale(1); } to { transform: scale(1.05); } }
-.placard { position: absolute; left: var(--mat); right: var(--mat); bottom: 0; height: var(--mat); display: flex; align-items: center; justify-content: center;
+.placard { position: absolute; left: var(--mat); right: var(--mat); bottom: 0; height: calc(var(--mat) - var(--my, 0px)); display: flex; align-items: center; justify-content: center;
   gap: .9em; white-space: nowrap; overflow: hidden; font-size: max(14px, calc(var(--mat) * var(--label-scale, .5))); letter-spacing: .04em; color: var(--label-ink);
   font-family: var(--card); font-weight: 400;
   opacity: 0; transition: opacity 1.2s ease; }
@@ -65,7 +66,7 @@ body.labels-always .slide.on .placard, body.labels-brief .slide.on.fresh .placar
 .placard .orig { opacity: .6; font-size: .72em; flex-shrink: 0; white-space: nowrap; }
 .placard .code { opacity: .6; font-size: .6em; font-weight: 500; letter-spacing: .08em; flex-shrink: 0; }
 /* The one quiet line in the top mat that says why a piece is up today. */
-.reason { position: absolute; left: var(--mat); right: var(--mat); top: 0; height: var(--mat); display: flex; align-items: center; justify-content: center;
+.reason { position: absolute; left: var(--mat); right: var(--mat); top: 0; height: calc(var(--mat) + var(--my, 0px)); display: flex; align-items: center; justify-content: center;
   white-space: nowrap; overflow: hidden; font-family: var(--card); font-weight: 400; font-size: max(12px, calc(var(--mat) * .4)); letter-spacing: .18em;
   text-transform: uppercase; color: var(--label-ink); opacity: 0; transition: opacity 1.2s ease; }
 body.labels-always .slide.on .reason, body.labels-brief .slide.on.fresh .reason { opacity: .9; }
@@ -682,6 +683,7 @@ function render(it) {
     if (it.why && it.why.mat) {
       next.style.setProperty('--mat-color', it.why.mat.c); next.style.setProperty('--bevel', it.why.mat.b); next.style.setProperty('--label-ink', it.why.mat.i);
     }
+    shiftMat(next, true);
     if (it.why && it.why.line) { var rs = document.createElement('div'); rs.className = 'reason'; rs.textContent = it.why.line; next.appendChild(rs); }
     var win = document.createElement('div'); win.className = 'window'; img.className = '';
     img.style.objectPosition = it.cur ? it.fx + '% ' + it.fy + '%' : ''; win.appendChild(img); next.appendChild(win);
@@ -794,6 +796,17 @@ function layout() {
   document.documentElement.style.setProperty('--mat', Math.round(Math.max(18, Math.min(sw, fr.clientWidth || sw) * 0.068)) + 'px');
 }
 if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
+/* Burn-in care: the mat's bright inner edge must not sit on the same pixels for hours.
+   Each new picture gets a slightly different mat width, and the picture window wanders a few
+   pixels, gliding over 40 s every few minutes, so the edge never holds still and the eye never sees it move. */
+function shiftMat(el, resize) {
+  var base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mat')) || 38;
+  var r = Math.max(3, Math.round(base * 0.12));
+  if (resize) el.style.setProperty('--mat', Math.round(base * (0.88 + Math.random() * 0.24)) + 'px');
+  el.style.setProperty('--mx', Math.round((Math.random() * 2 - 1) * r) + 'px');
+  el.style.setProperty('--my', Math.round((Math.random() * 2 - 1) * r) + 'px');
+}
+setInterval(function () { if (started && slides[cur]) shiftMat(slides[cur], false); }, 4 * 60 * 1000);
 /* The world outside: weather every half hour, and a calmer wall late at night. */
 function tickClock() { var h = new Date().getHours(); document.body.classList.toggle('night', h >= 22 || h < 6); }
 tickClock(); setInterval(tickClock, 60 * 1000);
